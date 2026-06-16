@@ -1,0 +1,124 @@
+/// CCE-interop EMS transmission  ->  FHIR R4 Bundle (Option A: Device + Observation)
+/// Phase 2 of the FHIR adoption epic (ccesim-jby.4).
+///
+/// This is the CANONICAL, portable transform. It is the FHIR Mapping Language
+/// (FML) sibling of the executable reference implementation in
+/// ../../transform/cce_to_fhir.py — the two MUST stay in lockstep. The Python
+/// proves the mapping end-to-end in this (JVM-less) environment; this .fml is
+/// meant to be compiled to a StructureMap and run by Matchbox / the HL7 FHIR
+/// validator (`-transform`) in a Java-enabled CI. That engine run is tracked as
+/// a follow-up (ccesim-jby.7).
+///
+/// Source typing: the transform reads the cce-interop JSON via the Phase 1
+/// logical models (cce-transmission / cce-ems-report / cce-ems-record). Running
+/// it in an engine therefore requires those StructureDefinitions plus this map
+/// on the IG path.
+///
+/// COVERAGE NOTE: the per-object Observation rules below are shown for a
+/// representative object of each unit-class (temperature, humidity, current,
+/// voltage, seconds, rpm, count, days) plus the coded objects (ALRM/EERR/LERR)
+/// and the boolean (MSW). The remaining numeric objects follow the SAME pattern,
+/// differing only in (object-code, UCUM unit); the complete object→unit table is
+/// the authoritative UNITS map in cce_to_fhir.py. A code-generation step can emit
+/// the full rule set from that table for engine execution.
+
+map "https://worldhealthorg.example/fhir/cce/StructureMap/cce-interop-to-bundle" = "CceInteropToBundle"
+
+uses "https://worldhealthorg.example/fhir/cce/StructureDefinition/cce-transmission" alias CceTransmission as source
+uses "https://worldhealthorg.example/fhir/cce/StructureDefinition/cce-ems-report" alias CceEmsReport as source
+uses "https://worldhealthorg.example/fhir/cce/StructureDefinition/cce-ems-record" alias CceEmsRecord as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+
+group Transmission(source tx : CceTransmission, target bundle : Bundle) {
+  tx.meta as m -> bundle.type = 'collection',
+                  bundle.identifier as id then { m.transferId as v -> id.value = v "txid"; },
+                  bundle.timestamp = m.transferredAt "meta";
+  // one report -> a set of Device entries + per-record Observation entries
+  tx.data as report -> bundle.entry as e, e.resource = create('Device') as appliance
+       then Report(report, appliance, bundle) "report";
+}
+
+group Report(source report : CceEmsReport, target appliance : Device, target bundle : Bundle) {
+  // --- appliance Device (anchor) ---
+  report.appliance as a -> appliance.manufacturer = a.AMFR,
+                           appliance.modelNumber = a.AMOD,
+                           appliance.type as t then { a.ACAT as c -> t.text = c "acat"; },
+                           appliance.identifier as id then { a.ASER as v -> id.value = v "aser"; } "appliance";
+
+  // --- EMD Device, parent = appliance ---
+  report.emd as emdsrc -> bundle.entry as e, e.resource = create('Device') as emd then {
+      emdsrc -> emd.manufacturer = emdsrc.EMFR,
+                emd.modelNumber = emdsrc.EMOD,
+                emd.type as t then { emdsrc -> t.text = 'EMD' "emdtype"; },
+                emd.parent = reference(appliance) "emdfields";
+      // each record -> Observations attached to (device=emd, subject=appliance)
+      report.records as rec -> bundle.entry as oe then
+          Record(rec, emd, appliance, bundle) "records";
+  } "emd";
+
+  // --- Logger Device, parent = EMD ---  (full parenting handled in cce_to_fhir.py)
+  report.logger as logsrc -> bundle.entry as e, e.resource = create('Device') as lg then {
+      logsrc -> lg.manufacturer = logsrc.LMFR, lg.modelNumber = logsrc.LMOD,
+                lg.type as t then { logsrc -> t.text = 'Logger' "lgtype"; } "logfields";
+  } "logger";
+}
+
+group Record(source rec : CceEmsRecord, target dev : Device, target subj : Device, target bundle : Bundle) {
+  // TVC — representative TEMPERATURE object (UCUM 'Cel'); TFRZ/TAMB/TCON/TPCB... identical
+  rec.TVC as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "tvc";
+  // HAMB — representative PERCENT object (UCUM '%'); HCOM/FANS identical
+  rec.HAMB as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "hamb";
+  // ACCD — representative CURRENT object (UCUM 'A'); DCCD identical
+  rec.ACCD as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "accd";
+  // ACSV — representative VOLTAGE object (UCUM 'V'); DCSV identical
+  rec.ACSV as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "acsv";
+  // CMPR — representative SECONDS object (UCUM 's'); SVA/DORV/DORF/IDR* identical
+  rec.CMPR as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "cmpr";
+  // CMPS — representative RPM object (UCUM '/min'); CMPS2 identical
+  rec.CMPS as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "cmps";
+  // HOLD — representative DAYS object (UCUM 'd'); BEMD/BLOG identical
+  rec.HOLD as v -> bundle.entry as e, e.resource = create('Observation') as o then
+      Quantity(rec, o, dev, subj, v) "hold";
+  // MSW — boolean
+  rec.MSW as v -> bundle.entry as e, e.resource = create('Observation') as o then {
+      rec -> o.status = 'final', o.effectiveInstant = rec.ABST, o.device = reference(dev),
+             o.subject = reference(subj), o.value = v "mswval";
+  } "msw";
+  // ALRM — coded (space-delimited wire string is split upstream; one code per Observation)
+  rec.ALRM as code -> bundle.entry as e, e.resource = create('Observation') as o then
+      Coded(rec, o, dev, subj, code) "alrm";
+}
+
+/// Shared shape for a numeric Observation. The object code + UCUM unit are set
+/// per call-site in an engine build (e.g. via a generated per-object group, or
+/// FHIRPath on the element name); shown here as the common skeleton.
+group Quantity(source rec : CceEmsRecord, target o : Observation, target dev : Device, target subj : Device, source v) {
+  rec -> o.status = 'final',
+         o.effectiveInstant = rec.ABST,
+         o.device = reference(dev),
+         o.subject = reference(subj),
+         o.value = create('Quantity') as q then {
+             v -> q.value = v, q.system = 'http://unitsofmeasure.org' "qval";
+         } "obs";
+}
+
+group Coded(source rec : CceEmsRecord, target o : Observation, target dev : Device, target subj : Device, source code) {
+  rec -> o.status = 'final',
+         o.effectiveInstant = rec.ABST,
+         o.device = reference(dev),
+         o.subject = reference(subj),
+         o.value = create('CodeableConcept') as cc then {
+             code -> cc.coding as cg then {
+                 code -> cg.system = 'https://worldhealthorg.example/fhir/cce/CodeSystem/pqs-e003-alarms',
+                         cg.code = code "cg";
+             } "cc";
+         } "coded";
+}

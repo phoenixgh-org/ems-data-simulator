@@ -1,0 +1,25 @@
+# SUSHI configuration for the CCE / EMS FHIR adoption work.
+# Phase 1 of epic ccesim-jby (FHIR adoption for EMS/CCE data).
+#
+# This compiles the Logical Models + CodeSystems + ValueSets only (FSHOnly),
+# producing StructureDefinition/CodeSystem/ValueSet JSON without requiring the
+# full HL7 IG Publisher toolchain. A full IG build is scoped for Phase 3.
+#
+# NOTE: the `canonical` host below is a PLACEHOLDER. Canonical-URL ownership is
+# an open governance question tracked in ccesim-jby.2.
+
+id: who.cce.ems
+canonical: https://worldhealthorg.example/fhir/cce
+name: CceEmsFhir
+title: "WHO PQS E006 EMS / CCE — FHIR Logical Models & Terminology"
+description: "FHIR Logical Models and terminology (CodeSystems/ValueSets) expressing WHO PQS E006 EMS-compliant cold-chain-equipment data, derived from the cce-interop-0.8.0 delivery schema."
+status: draft
+experimental: true
+version: 0.1.0
+fhirVersion: 4.0.1
+copyrightYear: 2026+
+releaseLabel: ci
+publisher:
+  name: CCE Data Interoperability
+FSHOnly: true
+applyExtensionMetadataToRoot: false
