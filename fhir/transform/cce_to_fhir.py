@@ -97,8 +97,13 @@ def _ref(fullurl: str) -> dict:
     return {"reference": fullurl}
 
 
+ID_SERIAL = f"{RES_BASE}/identifier/serial"  # manufacturer serial (ASER/ESER/LSER)
+ID_ASSET = f"{RES_BASE}/identifier/asset"    # program asset id (AID/EID/LID)
+
+
 def _device(fullurl: str, did: str, mfr: str, mod: str, dop: str,
             pqs: str, dtype_text: str, parent_url: str | None,
+            *, serial: str | None = None, asset_id: str | None = None,
             extra_props: dict[str, str] | None = None) -> dict:
     dev: dict[str, Any] = {
         "resourceType": "Device",
@@ -109,22 +114,25 @@ def _device(fullurl: str, did: str, mfr: str, mod: str, dop: str,
     }
     if dop:
         dev["manufactureDate"] = f"{dop}T00:00:00Z" if "T" not in dop else dop
+    # Business identifiers carry the real device serial / asset id (the synthetic
+    # `did` is the resource-local logical id, not a business identifier). Each gets
+    # a system so a consumer can tell serial from asset id.
     ids = []
-    if did:
-        ids.append({"value": did})
+    if serial:
+        ids.append({"system": ID_SERIAL, "value": serial})
+    if asset_id:
+        ids.append({"system": ID_ASSET, "value": asset_id})
     if ids:
         dev["identifier"] = ids
     props = dict(extra_props or {})
     if pqs:
         props["PQS-code"] = pqs
     if props:
+        # `property.valueCode` is a CodeableConcept list in R4.
         dev["property"] = [
-            {"type": {"text": k}, "valueQuantity": None, "valueCode": [{"text": v}]}
+            {"type": {"text": k}, "valueCode": [{"text": v}]}
             for k, v in props.items()
         ]
-        # `property.valueCode` is a CodeableConcept list in R4; drop the null quantity
-        for p in dev["property"]:
-            p.pop("valueQuantity", None)
     if parent_url:
         dev["parent"] = _ref(parent_url)
     return dev
@@ -177,16 +185,17 @@ def transform(transmission: dict) -> dict:
         appliance = _device(appliance_url, f"appliance-{r_idx}",
                             report["AMFR"], report["AMOD"], report["ADOP"],
                             report["APQS"], report.get("ACAT") or "Appliance",
-                            None, extra_props=loc_props)
-        if report.get("AID"):
-            appliance["identifier"].append({"value": report["AID"]})
+                            None, serial=report.get("ASER"),
+                            asset_id=report.get("AID"), extra_props=loc_props)
         emd = _device(emd_url, f"emd-{r_idx}", report["EMFR"], report["EMOD"],
-                     report["EDOP"], report["EPQS"], "EMD", appliance_url)
+                     report["EDOP"], report["EPQS"], "EMD", appliance_url,
+                     serial=report.get("ESER"), asset_id=report.get("EID"))
         if report.get("EMSV"):
             emd["version"] = [{"value": report["EMSV"]}]
         logger = _device(logger_url, f"logger-{r_idx}", report["LMFR"],
                         report["LMOD"], report["LDOP"], report["LPQS"],
-                        "Logger", emd_url)
+                        "Logger", emd_url,
+                        serial=report.get("LSER"), asset_id=report.get("LID"))
 
         for dev, url in ((appliance, appliance_url), (emd, emd_url), (logger, logger_url)):
             entries.append({"fullUrl": url, "resource": dev})
@@ -231,6 +240,8 @@ def transform(transmission: dict) -> dict:
     }
     ts = meta.get("transferredAt")
     if ts:
-        # transferredAt may be a datetime (from the simulator) or a string
-        bundle["timestamp"] = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+        # transferredAt may be a datetime (from the simulator) or a wire string.
+        # FHIR `instant` requires a 'T' date/time separator; a string coming off
+        # the wire (json default=str) uses a space, so normalize it.
+        bundle["timestamp"] = ts.isoformat() if hasattr(ts, "isoformat") else str(ts).replace(" ", "T")
     return bundle
