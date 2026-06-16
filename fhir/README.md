@@ -34,7 +34,7 @@ Maps a cce-interop EMS transmission to a plain FHIR R4 **Bundle** of `Device` +
 - `ALRM`/`EERR`/`LERR` → coded `Observation` (`valueCodeableConcept`); `MSW` → `valueBoolean`
 
 ```bash
-pip install "fhir.resources>=7.0.0"        # optional; only needed for validation
+pip install "fhir.resources>=7.0.0"        # optional; quick pure-Python validation
 python fhir/transform/run_phase2_poc.py    # writes + validates examples/
 python -m pytest tests/test_fhir_transform.py
 ```
@@ -42,12 +42,32 @@ python -m pytest tests/test_fhir_transform.py
 `fhir.resources` is an optional, FHIR-only dependency (not required by the core
 simulator). The transform test skips cleanly when it is not installed.
 
-> **Engine caveat.** The `.fml` is the canonical, portable transform but is **not
-> executed here** — Matchbox / the HL7 validator `-transform` are Java-only and no
-> JVM is available in this environment. The Python transformer is the executable
-> proof (its output validates against FHIR R4B via `fhir.resources`). Running the
-> `.fml` itself through a real engine in a Java-enabled CI is tracked as
-> `ccesim-jby.7`; the two implementations must stay in lockstep.
+### Authoritative validation with the HL7 FHIR Validator (Java)
+
+The Python transformer output validates against **FHIR R4 proper (4.0.1)** using
+HL7's own Java validator. Requires a JDK (17+) and `validator_cli.jar`:
+
+```bash
+cd fhir && npx fsh-sushi@latest . && cd ..      # CodeSystems for terminology checks
+java -jar ~/fhir-validator/validator_cli.jar fhir/examples/ems-bundle-small.json \
+     -ig fhir/fsh-generated/resources -version 4.0.1
+# -> Success: 0 errors (warnings are best-practice only: no performer/narrative/display)
+```
+
+This is stricter than the pure-Python check and caught three real defects that
+`fhir.resources` (R4B) missed, now fixed in `cce_to_fhir.py`:
+`urn:uuid:` fullUrls must be real UUIDs (switched to resource-typed URLs);
+RESTful fullUrls must end in `/{type}/{id}` matching the resource id;
+`coding.display` must match the CodeSystem exactly (now omitted, the canonical
+display lives in `PqsE006DataObjects`).
+
+> **FML engine status.** The Java validator's `transform` mode *runs* a
+> StructureMap, but the `.fml` does **not** yet execute cleanly: it has FML
+> grammar issues and a source-shape gap (the FML reads the *grouped* logical-model
+> paths, e.g. `report.appliance.AMFR`, while the cce-interop wire JSON is *flat*,
+> `report.AMFR`). Making the FML engine-executable — and matching its output to the
+> Python reference — is tracked in `ccesim-jby.7`. The Python transformer is the
+> working executable reference today.
 
 ## Design notes
 

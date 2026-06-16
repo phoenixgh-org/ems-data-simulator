@@ -5,10 +5,10 @@ Device + Observation resources (minimal profiling).
 
 This Python implementation is the *executable reference* for the StructureMap in
 ``fhir/input/maps/cce-interop-to-bundle.fml``. The two MUST stay in lockstep: the
-FML is the canonical, portable transform (runnable by Matchbox / HL7 validator in
-a Java-enabled environment, tracked in ccesim-jby.4 follow-up); this module proves
-the mapping end-to-end here (no JVM) and emits Bundles we validate with
-``fhir.resources``.
+FML is the canonical, portable transform; this module is the working executable
+today. Its output validates against FHIR R4 (4.0.1) with 0 errors using HL7's own
+Java validator (and against R4B via ``fhir.resources``). Making the FML itself
+engine-executable and matching its output here is tracked in ccesim-jby.7.
 
 Mapping summary
 ---------------
@@ -28,6 +28,11 @@ import re
 from typing import Any
 
 # Canonical base for the CodeSystems authored in Phase 1 (ccesim-jby.2).
+# Bundle.entry.fullUrl must be an absolute URI. We use resource-typed URLs under a
+# base rather than `urn:uuid:` -- the urn:uuid scheme requires a real lowercase
+# UUID (enforced by the HL7 validator), and our ids are deterministic, not UUIDs.
+RES_BASE = "https://worldhealthorg.example/fhir/cce"
+
 CS_OBJECTS = "https://worldhealthorg.example/fhir/cce/CodeSystem/pqs-e006-data-objects"
 CS_ALARMS = "https://worldhealthorg.example/fhir/cce/CodeSystem/pqs-e003-alarms"
 CS_EERR = "https://worldhealthorg.example/fhir/cce/CodeSystem/cce-emd-error-codes"
@@ -132,8 +137,11 @@ def _observation(oid: str, obj_code: str, instant: str,
         "resourceType": "Observation",
         "id": oid,
         "status": "final",
-        "code": {"coding": [{"system": CS_OBJECTS, "code": obj_code,
-                             "display": DISPLAY.get(obj_code, obj_code)}]},
+        # `display` is intentionally omitted: it is a denormalization of the
+        # CodeSystem's display and the HL7 validator rejects any value that does
+        # not match the CodeSystem exactly. Consumers resolve the display from
+        # PqsE006DataObjects. (DISPLAY is kept for human-facing tooling/logs.)
+        "code": {"coding": [{"system": CS_OBJECTS, "code": obj_code}]},
         "effectiveInstant": instant,
         "device": _ref(device_url),
         "subject": _ref(subject_url),
@@ -152,9 +160,11 @@ def transform(transmission: dict) -> dict:
     n = 0  # monotonic id counter for stable, deterministic resource ids
 
     for r_idx, report in enumerate(transmission["data"]):
-        appliance_url = f"urn:uuid:device-appliance-{r_idx}"
-        emd_url = f"urn:uuid:device-emd-{r_idx}"
-        logger_url = f"urn:uuid:device-logger-{r_idx}"
+        # fullUrl must end in /{type}/{id} matching the resource id (HL7 validator
+        # enforces this for RESTful-looking URLs).
+        appliance_url = f"{RES_BASE}/Device/appliance-{r_idx}"
+        emd_url = f"{RES_BASE}/Device/emd-{r_idx}"
+        logger_url = f"{RES_BASE}/Device/logger-{r_idx}"
 
         loc_props = {}
         for k in ("FID", "FNAM", "DNAM", "RNAM"):
@@ -188,7 +198,7 @@ def transform(transmission: dict) -> dict:
                 if val is None:
                     continue
                 n += 1
-                ourl = f"urn:uuid:obs-{n}"
+                ourl = f"{RES_BASE}/Observation/obs-{n}"
                 value = {"valueQuantity": {"value": val, "unit": disp_unit,
                                           "system": UCUM, "code": ucum}}
                 entries.append({"fullUrl": ourl, "resource": _observation(
@@ -197,7 +207,7 @@ def transform(transmission: dict) -> dict:
             # MSW: boolean main switch
             if record.get("MSW") is not None:
                 n += 1
-                entries.append({"fullUrl": f"urn:uuid:obs-{n}", "resource": _observation(
+                entries.append({"fullUrl": f"{RES_BASE}/Observation/obs-{n}", "resource": _observation(
                     f"obs-{n}", "MSW", instant, emd_url, appliance_url,
                     value={"valueBoolean": bool(record["MSW"])})})
 
@@ -208,7 +218,7 @@ def transform(transmission: dict) -> dict:
                     continue
                 for code in str(raw).split():
                     n += 1
-                    entries.append({"fullUrl": f"urn:uuid:obs-{n}", "resource": _observation(
+                    entries.append({"fullUrl": f"{RES_BASE}/Observation/obs-{n}", "resource": _observation(
                         f"obs-{n}", obj, instant, emd_url, appliance_url,
                         value={"valueCodeableConcept": {
                             "coding": [{"system": sys, "code": code}]}})})

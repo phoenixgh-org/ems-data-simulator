@@ -99,8 +99,8 @@ def test_device_parent_hierarchy(ems_bundle):
     devs = {d["type"]["text"]: d for d in
             (e["resource"] for e in ems_bundle["entry"] if e["resource"]["resourceType"] == "Device")}
     assert "parent" not in devs["Appliance"]
-    assert devs["EMD"]["parent"]["reference"].endswith("device-appliance-0")
-    assert devs["Logger"]["parent"]["reference"].endswith("device-emd-0")
+    assert devs["EMD"]["parent"]["reference"].endswith("/Device/appliance-0")
+    assert devs["Logger"]["parent"]["reference"].endswith("/Device/emd-0")
 
 
 def test_coded_alarm_observations_present(ems_bundle):
