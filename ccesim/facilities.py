@@ -51,6 +51,24 @@ class Facility:
       return Coordinates(self.latitude, self.longitude)
       
     def get_nudged_coordinates(self):
+        '''
+        The facility's coordinates with a small random offset applied. THIS IS
+        THE ONLY COORDINATE PAIR THAT SHOULD REACH A REPORT.
+
+        THE JITTER IS DELIBERATE -- do not remove it as noise. It blurs the
+        exact point of a facility that may be a real one. It does NOT
+        anonymise it: random.gauss(0.00001, 0.001) degrees is about 111 m at
+        one sigma, still inside the compound. Treat it as courtesy, never as a
+        privacy control.
+
+        It is drawn afresh on every call, so successive reports from one device
+        carry slightly different LAT/LNG, as a real GPS fix would.
+
+        THIS APPLIES TO CATALOGS YOU SUPPLY TOO. A facility list loaded from
+        `Catalogs.from_dir()` or `CCESIM_CATALOG_DIR` goes through this same
+        path, so your own registry coordinates are jittered by the same ~111 m
+        and reports will not match your registry exactly.
+        '''
         nudged_lat = self.latitude + random.gauss(0.00001, 0.001)
         nudged_lng = self.longitude + random.gauss(0.00001, 0.001)
         return Coordinates(nudged_lat, nudged_lng)

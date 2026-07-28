@@ -80,6 +80,20 @@ print(type(report))  # EmsReport or RtmdReport
 print(len(report.records))  # 3600/900 = 4
 ```
 
+### Reported coordinates are deliberately jittered
+
+Every report draws its `LAT`/`LNG` from `Facility.get_nudged_coordinates()`,
+which adds a random offset of roughly 111 m (one sigma) to the facility's
+coordinates. It is intentional — do not strip it as noise. It blurs the exact
+point of a facility that may be a real one, and it means successive reports
+from one device carry slightly different coordinates, as a real GPS fix would.
+
+Two things follow. The offset is **not** anonymisation: 111 m is still inside
+the compound, so treat it as courtesy, not as a privacy control. And it applies
+to **your** facilities too — a list loaded through `Catalogs` or
+`CCESIM_CATALOG_DIR` goes through the same path, so reported coordinates will
+not match your registry exactly.
+
 ## Injecting anomalies
 
 ```python
@@ -249,6 +263,7 @@ To support a new power source (e.g., generator-backed, hybrid solar-mains):
 
 ```
 ccesim/
+├── __init__.py              Package marker
 ├── simulator/
 │   ├── __init__.py          Public API exports
 │   ├── config.py            All configuration dataclasses
@@ -264,6 +279,8 @@ ccesim/
 └── schemas.py               Pydantic models (cce-interop 0.8.1 schema)
 
 tests/
+├── __init__.py              Package marker
+├── conftest.py              Shared fixtures (serials, timestamps, sample reports)
 ├── test_thermal.py          Thermal model unit tests
 ├── test_power.py            Power model unit tests
 ├── test_events.py           Events, faults, alarms unit tests
@@ -272,8 +289,11 @@ tests/
 ├── test_facilities.py       Facility data tests
 ├── test_catalogs.py         Pluggable catalog loader tests
 ├── test_power_type.py       Appliance power-type resolution tests
+├── test_alarm_episodes.py   Alarm episode derivation tests (FHIR DetectedIssue)
+├── test_fhir_transform.py   cce-interop to FHIR R4 Bundle transform tests
 └── test_rtmd.py             Schema validation tests
 
+fhir/                        FHIR IG and reference transform (see fhir/README.md)
 locustfile.py                Locust load test configuration
 simulator_examples.ipynb     Interactive examples with plots
 ```

@@ -184,8 +184,9 @@ class BaseRtmDevice:
         self.emsv = self.lsv
 
         self.cid = self.config.facility.iso
-        self.lat = self.config.facility.latitude
-        self.lng = self.config.facility.longitude
+        # No self.lat / self.lng here on purpose: the coordinates that reach
+        # the wire are drawn per report from get_nudged_coordinates(). Holding
+        # the raw pair on the device is an invitation to emit it.
 
         # Supplier-internal appliance monitoring id, minted once and held
         # stable across all reports this device produces.
