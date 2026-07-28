@@ -20,9 +20,9 @@ npm install
 ### Low-level: SimulatedRecordSet
 
 ```javascript
-import { SimulatedRecordSet, defaultConfig } from './src/index.js';
+import { SimulatedRecordSet, default_config } from './src/index.js';
 
-const config = defaultConfig('mains', 12.0);
+const config = default_config('mains', 12.0);
 config.random_seed = 42;
 const start = new Date(Date.UTC(2024, 5, 15, 0, 0, 0));
 
@@ -75,7 +75,7 @@ console.log(report.toJSON());
 State persists between `generate()` calls via `SimulatorState`:
 
 ```javascript
-const config = defaultConfig('mains', 12.0);
+const config = default_config('mains', 12.0);
 config.random_seed = 42;
 const start = new Date(Date.UTC(2024, 0, 1));
 
@@ -92,9 +92,9 @@ const rs2 = SimulatedRecordSet.generate(config, 96, nextStart, 900, rs1.state);
 ## Injecting anomalies
 
 ```javascript
-import { defaultConfig, FaultType } from './src/index.js';
+import { default_config, FaultType } from './src/index.js';
 
-const config = defaultConfig('mains', 12.0);
+const config = default_config('mains', 12.0);
 
 // Compressor failure at hour 8, lasting 6 hours
 config.fault.fault_type = FaultType.COMPRESSOR_FAILURE;
@@ -146,7 +146,7 @@ config.fault = new FaultConfig({
 | Load testing | Locust integration | Not included |
 | Notebooks | Jupyter examples with plots | Not included |
 
-The physics engine, fault injection, alarm state machine, and CCDX output formats are identical. Numerical outputs differ slightly due to the different PRNG algorithms, but behavioral characteristics match (verified by cross-validation tests).
+The physics engine, fault injection, alarm state machine, and CCE Data Delivery output formats are identical. Numerical outputs differ slightly due to the different PRNG algorithms, but behavioral characteristics match (verified by cross-validation tests).
 
 ## API reference
 
@@ -163,7 +163,7 @@ new FaultConfig({ fault_type: FaultType.STUCK_DOOR })
 new SimulationConfig({ thermal, ambient, power, events, fault })
 ```
 
-### `defaultConfig(powerType, latitude)`
+### `default_config(powerType, latitude)`
 
 Creates a complete `SimulationConfig` with sensible defaults. Ambient temperature is estimated from latitude.
 
@@ -237,7 +237,7 @@ js/
     ├── power.js                 Mains and solar power models
     ├── events.js                Door generation, fault injection, alarms
     ├── recordset.js             Orchestration and schema conversion
-    ├── schemas.js               CCDX output format classes
+    ├── schemas.js               cce-interop 0.8.1 output format classes
     ├── device.js                Device wrapper + report generation
     ├── random.js                Seedable PRNG wrapper
     ├── *.test.js                Unit tests (co-located)

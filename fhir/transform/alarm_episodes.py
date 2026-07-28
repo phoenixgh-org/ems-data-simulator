@@ -1,8 +1,9 @@
 """Derive FHIR DetectedIssue episodes from the per-record EMS alarm stream.
 
-Decision prototype for ccesim-jby.3. The Phase 2 transform already emits each
-per-record ALRM/EERR/LERR code as a coded Observation (lossless, 1:1 with the
-wire). EMS alarms, however, are *excursion-timer episodes*: a single logical
+Prototype for the alarm-modeling decision (see ../decisions/0001-alarm-modeling.md).
+The transform already emits each per-record ALRM/EERR/LERR code as a coded
+Observation (lossless, 1:1 with the wire).
+EMS alarms, however, are *excursion-timer episodes*: a single logical
 alarm (e.g. HEAT = TVC>8 C for 10h) stays active across many consecutive records.
 In the example data, one HEAT excursion spans 65 records -> 65 near-identical
 Observations.
@@ -15,7 +16,7 @@ fhir/decisions/0001-alarm-modeling.md.
 
 Scope note: this derivation is an interoperability-layer concern. Full
 integration (wiring into the IG, evidence links to the contributing temperature
-Observations, severity taxonomy) is Phase 3 (ccesim-jby.5). This module proves
+Observations, severity taxonomy) is future work. This module proves
 the chosen model is implementable and R4-valid.
 """
 from __future__ import annotations

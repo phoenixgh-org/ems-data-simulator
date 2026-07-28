@@ -1,15 +1,14 @@
 // =============================================================================
 // CodeSystems for WHO PQS E006 EMS / CCE data
-// Phase 1b of the FHIR adoption epic (ccesim-jby.2)
 //
 // Source of truth:
 //   - WHO/PQS/E006/DS01 Annex 1 (Cold Chain Data Objects) + Annex 2 (JSON Schema)
-//   - cce-interop-0.8.0 $defs/PQS-DS01-objects (derived delivery schema)
+//   - cce-interop-0.8.1 $defs/PQS-DS01-objects (derived delivery schema)
 // Concept displays/definitions are lifted verbatim from the schema titles &
 // descriptions. There is no off-the-shelf code system for these; the PQS code
-// is the PRIMARY code, with ConceptMaps to LOINC/UCUM authored in Phase 3.
+// is the PRIMARY code, with ConceptMaps to LOINC/UCUM authored later.
 //
-// GOVERNANCE (open question, see ccesim-jby.2): the canonical URLs below use a
+// GOVERNANCE (open question): the canonical URLs below use a
 // placeholder host. Ownership of the canonical namespace (WHO/PQS vs the
 // interop-requirements maintainers) is unresolved and must be settled before
 // publication.

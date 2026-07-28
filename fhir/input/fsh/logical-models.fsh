@@ -1,9 +1,8 @@
 // =============================================================================
 // FHIR Logical Models for the WHO PQS E006 EMS / CCE data structure
-// Phase 1a of the FHIR adoption epic (ccesim-jby.1)
 //
 // These StructureDefinitions (kind = logical) express the EMS data structure in
-// FHIR's own modeling language, mirroring the cce-interop-0.8.0 nesting:
+// FHIR's own modeling language, mirroring the cce-interop-0.8.1 nesting:
 //
 //     CceTransmission  (root: meta + data[])
 //        -> CceEmsReport   (one report per CCE; administrative / static)
@@ -19,7 +18,7 @@
 // (YYYYMMDDThhmmssZ) plus JSON nulls. This logical model GROUPS related admin
 // objects into BackboneElements for clarity and types times as `instant`/`date`.
 // Reconciling the logical shape with the flat wire shape is the job of the
-// StructureMap in Phase 2 (ccesim-jby.4), not this model.
+// StructureMap, not this model.
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -33,7 +32,7 @@ Description: "A single supplier-to-country CCE data transmission (cce-interop sc
 * ^status = #draft
 * ^experimental = true
 * meta 1..1 BackboneElement "Transmission metadata (about the transmission, not the CCE)"
-  * schemaVersion 1..1 string "Schema version the transmission validates against, e.g. 0.8.0"
+  * schemaVersion 1..1 string "Schema version the transmission validates against, e.g. 0.8.1"
   * transferType 1..1 code "Type of transmission: ems | rtmd"
   * transferId 1..1 string "Supplier-generated unique transmission ID (e.g. UUID)"
   * transferSrc 1..1 string "URI of the data transmission source"
@@ -147,7 +146,7 @@ Description: "One sampling interval of CCE telemetry (typically 15 minutes). Mir
 // --- alarms & errors (coded) ---
 // Wire format: ALRM is a space-delimited string that may carry several codes at
 // once; absence/JSON-null = no alarm. Modeled here as 0..* coded for clarity;
-// the StructureMap splits the wire string. (See decision ccesim-jby.3 for
+// the StructureMap splits the wire string. (See decisions/0001-alarm-modeling.md for
 // whether downstream alarms become Observation vs DetectedIssue.)
 * ALRM 0..* code "Active alarm condition code(s)"
 * ALRM from PqsE003AlarmsVS (required)

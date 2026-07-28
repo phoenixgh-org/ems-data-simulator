@@ -84,7 +84,7 @@ class CceDevice(HttpUser):
 
     abstract = True                       # Locust won't instantiate this directly
     device_type = 'rtmd'                  # override in subclasses
-    host = environ.get('TARGET_HOST', 'http://localhost:8000')
+    host = environ.get('TARGET_HOST', 'http://localhost:8001')
     wait_time = constant_pacing(3600)       # seconds between POSTs
 
     def on_start(self):

@@ -26,12 +26,12 @@ zuluDateTime = Annotated[
 ]
 
 class TransferMetadata(BaseModel, arbitrary_types_allowed=True):
-    """Schema for metadata related to CCDX transfers, including both EMS and RTM transfers."""
+    """Transmission metadata for a CCE Data Delivery transfer (both EMS and RTM types)."""
     transferId: str
     transferSrc: str = 'org.nhgh'
     transferredAt: zuluDateTime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
     transferType: str = 'rtm'
-    schemaVersion: str = '0.8.0'
+    schemaVersion: str = '0.8.1'
     # cce-interop transmission-metadata names this 'transferCallbackUrl' and
     # types it as a non-nullable string, so it must be omitted (not null) when
     # absent. Serialization uses exclude_unset, so leaving it unset omits it.

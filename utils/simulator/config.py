@@ -268,8 +268,9 @@ class FaultConfig:
     refrigerant_leak_rate: For REFRIGERANT_LEAK, exponential decay constant
         (1/hours).  Cooling capacity = exp(-rate * elapsed_hours).
         Default 0.002 gives ~2-month onset-to-failure timeline matching
-        real-world thermosyphon leaks (e.g., unit 2807-CB2A: 62-day
-        degradation).  Higher values = faster leak (0.01 ≈ 2 weeks).
+        real-world thermosyphon leaks (fitted to a 62-day degradation
+        observed on a fleet unit).  Higher values = faster leak
+        (0.01 ≈ 2 weeks).
     """
     fault_type: FaultType = FaultType.NONE
     fault_start_offset_s: float = 0.0
@@ -296,9 +297,11 @@ class SimulationConfig:
 def default_config(power_type: str = "mains", latitude: Optional[float] = None) -> SimulationConfig:
     """Create a SimulationConfig with sensible defaults.
 
-    Solar defaults calibrated against Aucma MetaFridge CFD-50 data from
-    Abia State, Nigeria (lat ~5°N, 600s sample interval, June-September 2023).
-    See data/fridge_data.json for the reference dataset.
+    Solar defaults are fitted to performance data from over 1,000 Aucma
+    MetaFridge CFD-50 devices deployed in Nigeria and Kenya (equatorial
+    latitudes, 600s sample interval). That fleet dataset is not public and is
+    not distributed with this repository; see README.md ("Calibration") for the
+    output characteristics the fit reproduces.
 
     Args:
         power_type: "mains" or "solar".
@@ -345,8 +348,9 @@ def default_config(power_type: str = "mains", latitude: Optional[float] = None) 
     # For SDD: calibrated so 10 h of solar refills daily melt (~34 W).
     # For mains: slightly higher since power is continuous (~50 W).
     #
-    # See also: data/fridge_data.json (MetaFridge reference dataset),
-    # output/csv/PLOT_2932988129579106421_unlabeled.csv (real holdover).
+    # Both figures are fitted to the MetaFridge CFD-50 fleet dataset described
+    # in default_config() above, cross-checked against a recorded holdover
+    # curve from a single unit in that fleet.
 
     if power_type == "solar":
         thermal = ThermalConfig(

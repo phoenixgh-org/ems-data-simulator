@@ -49,7 +49,7 @@ describe('TransferMetadata', () => {
     expect(json.transferId).toBe('abc-123');
     expect(json.transferSrc).toBe('org.nhgh');
     expect(json.transferType).toBe('rtm');
-    expect(json.schemaVersion).toBe('0.8.0');
+    expect(json.schemaVersion).toBe('0.8.1');
     expect(json).toHaveProperty('transferredAt');
     expect(json).not.toHaveProperty('callbackUrl');
     expect(json).not.toHaveProperty('transferCallbackUrl');

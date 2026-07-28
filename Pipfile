@@ -4,21 +4,25 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+# Runtime dependencies of the simulator itself. The simulation engine is pure
+# standard library; pydantic is used only by the schema layer (utils/schemas.py).
+pydantic = '2.4.2'
+pydantic_core = '2.10.1'
+python-dateutil = '2.8.2'
+pytz = '2023.3.post1'
+tzdata = '2023.3'
 
 [dev-packages]
-ipykernel = "*"
+# Tests
+pytest = '7.4.3'
+# Load testing (locustfile.py)
 locust = '2.17.0'
+python-dotenv = '1.0.0'
+# Notebook examples and plotting (simulator_examples.ipynb)
+ipykernel = "*"
 matplotlib = '*'
 numpy = '1.26.4'
 pandas = '2.1.2'
-pydantic = '2.4.2'
-pydantic_core = '2.10.1'
-pyodbc = '5.0.1'
-pytest = '7.4.3'
-python-dateutil = '2.8.2'
-python-dotenv = '1.0.0'
-pytz = '2023.3.post1'
-tzdata = '2023.3'
 
 [requires]
 python_version = "3.12"

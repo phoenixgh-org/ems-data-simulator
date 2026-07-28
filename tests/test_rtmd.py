@@ -57,7 +57,7 @@ def test_rtmd_transfer(rtmd_transfer):
     assert rtmd_transfer['meta']['transferSrc'] == 'org.nhgh'
     assert isinstance(rtmd_transfer['meta']['transferredAt'], datetime)
     assert rtmd_transfer['meta']['transferType'] == 'rtm'
-    assert rtmd_transfer['meta']['schemaVersion'] == '0.8.0'
+    assert rtmd_transfer['meta']['schemaVersion'] == '0.8.1'
     assert isinstance(rtmd_transfer['meta']['schemaVersion'], str)
 
 def test_transfer_metadata_to_pydantic_model(transfer_metadata):

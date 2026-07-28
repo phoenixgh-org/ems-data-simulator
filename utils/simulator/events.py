@@ -135,8 +135,8 @@ class FaultInjector:
             #   - Exponential fits physics: leak rate ∝ remaining refrigerant
             #     pressure, which decreases as gas escapes
             #
-            # Reference: unit 2807-CB2A-0A00-00C8 (issue #616): onset March 5
-            # 2021, degraded 60 days, failure May 6 once icebank depleted.
+            # Reference case from the deployed fleet: onset early March, a
+            # 60-day degradation, then failure once the icebank depleted.
             elapsed_h = (timestamp - self.fault_start).total_seconds() / 3600.0
             multiplier = math.exp(-self.config.refrigerant_leak_rate * elapsed_h)
             # Below 5% capacity, the syphon can't sustain two-phase flow

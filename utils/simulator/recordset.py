@@ -1,8 +1,6 @@
 """
 SimulatedRecordSet: the integration layer that orchestrates thermal, power,
 and event models into schema-compatible record batches.
-
-Drop-in replacement for the old RecordSet/RecordSetFactory from ccedata.py.
 """
 
 import random

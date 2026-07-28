@@ -24,7 +24,7 @@ def transfer_metadata(type='rtmd', callback_url=None):
         'transferSrc': 'org.nhgh',
         'transferredAt': datetime.now(pytz.utc),
         'transferType': 'rtm',
-        'schemaVersion': '0.8.0',
+        'schemaVersion': '0.8.1',
     }
     if type == 'ems':
         obj['transferType'] = 'ems'

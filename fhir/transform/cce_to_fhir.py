@@ -1,6 +1,6 @@
-"""Reference transformer: cce-interop-0.8.0 EMS transmission -> FHIR R4 Bundle.
+"""Reference transformer: cce-interop-0.8.1 EMS transmission -> FHIR R4 Bundle.
 
-Phase 2 of the FHIR adoption epic (ccesim-jby.4), Option A: a plain Bundle of
+Option A of the FHIR mapping (see ../README.md): a plain Bundle of
 Device + Observation resources (minimal profiling).
 
 This Python implementation is the *executable reference* for the StructureMap in
@@ -8,7 +8,7 @@ This Python implementation is the *executable reference* for the StructureMap in
 FML is the canonical, portable transform; this module is the working executable
 today. Its output validates against FHIR R4 (4.0.1) with 0 errors using HL7's own
 Java validator (and against R4B via ``fhir.resources``). Making the FML itself
-engine-executable and matching its output here is tracked in ccesim-jby.7.
+engine-executable and matching its output here is open work.
 
 Mapping summary
 ---------------
@@ -16,7 +16,7 @@ meta                      -> Bundle (type=collection); identifier=transferId; ti
 report.appliance          -> Device (anchor)             ASER/AID, AMFR, AMOD, ADOP, APQS, ACAT
 report.emd                -> Device, parent=appliance     ESER/EID, EMFR, EMOD, EDOP, EPQS, EMSV
 report.logger             -> Device, parent=emd           LSER/LID, LMFR, LMOD, LDOP, LPQS, LSV
-report.location           -> (carried on Devices via property; full Location is Phase 3)
+report.location           -> (carried on Devices via property; full Location is future work)
 record.<numeric object>   -> Observation (valueQuantity + UCUM); effectiveInstant=ABST; device=emd, subject=appliance
 record.MSW                -> Observation (valueBoolean)
 record.ALRM (per code)    -> Observation (valueCodeableConcept from PqsE003Alarms)
@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-# Canonical base for the CodeSystems authored in Phase 1 (ccesim-jby.2).
+# Canonical base for the authored CodeSystems.
 # Bundle.entry.fullUrl must be an absolute URI. We use resource-typed URLs under a
 # base rather than `urn:uuid:` -- the urn:uuid scheme requires a real lowercase
 # UUID (enforced by the HL7 validator), and our ids are deterministic, not UUIDs.

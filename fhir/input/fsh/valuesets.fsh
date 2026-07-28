@@ -1,10 +1,9 @@
 // =============================================================================
 // ValueSets for WHO PQS E006 EMS / CCE data
-// Phase 1b of the FHIR adoption epic (ccesim-jby.2)
 //
 // These value sets are referenced by the Logical Model field bindings
 // (logical-models.fsh) and will be reused by the Observation profiles in
-// Phase 3 (ccesim-jby.5).
+// a future profiling pass.
 // =============================================================================
 
 ValueSet: PqsE006DataObjectsVS

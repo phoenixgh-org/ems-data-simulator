@@ -64,7 +64,7 @@ export class TransferMetadata {
    * @param {string} [opts.transferSrc='org.nhgh']
    * @param {Date}   [opts.transferredAt]
    * @param {'rtm'|'ems'} [opts.transferType='rtm']
-   * @param {string} [opts.schemaVersion='0.8.0']
+   * @param {string} [opts.schemaVersion='0.8.1']
    * @param {string|null} [opts.transferCallbackUrl]
    */
   constructor({
@@ -72,7 +72,7 @@ export class TransferMetadata {
     transferSrc = 'org.nhgh',
     transferredAt = new Date(),
     transferType = 'rtm',
-    schemaVersion = '0.8.0',
+    schemaVersion = '0.8.1',
     transferCallbackUrl = null,
   }) {
     this.transferId = transferId;

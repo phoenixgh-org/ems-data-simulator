@@ -1,5 +1,4 @@
 // CCE-interop EMS transmission  ->  FHIR R4 Bundle (Option A: Device + Observation)
-// Phase 2 of the FHIR adoption epic (ccesim-jby.4).
 //
 // This is the CANONICAL, portable transform. It is the FHIR Mapping Language
 // (FML) sibling of the executable reference implementation in
@@ -7,9 +6,9 @@
 // proves the mapping end-to-end in this (JVM-less) environment; this .fml is
 // meant to be compiled to a StructureMap and run by Matchbox / the HL7 FHIR
 // validator (`-transform`) in a Java-enabled CI. That engine run is tracked as
-// a follow-up (ccesim-jby.7).
+// a follow-up.
 //
-// Source typing: the transform reads the cce-interop JSON via the Phase 1
+// Source typing: the transform reads the cce-interop JSON via the
 // logical models (cce-transmission / cce-ems-report / cce-ems-record). Running
 // it in an engine therefore requires those StructureDefinitions plus this map
 // on the IG path.

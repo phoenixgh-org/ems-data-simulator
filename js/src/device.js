@@ -48,7 +48,7 @@ export function transferMetadata(type = "rtmd", callbackUrl = null) {
     transferSrc: "org.nhgh",
     transferredAt: new Date(),
     transferType: type === "ems" ? "ems" : "rtm",
-    schemaVersion: "0.8.0",
+    schemaVersion: "0.8.1",
   };
   if (callbackUrl != null) {
     obj.transferCallbackUrl = callbackUrl;

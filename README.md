@@ -1,13 +1,89 @@
 # CCE Thermal Simulator
 
-A physics-based synthetic data generator for cold chain equipment (CCE) monitoring systems. Produces realistic time-series data conforming to the [CCDX schema](https://wiki.digitalsquare.io/index.php/Cold_Chain_Data_Exchange) for both EMS (Equipment Monitoring System) and RTMD (Remote Temperature Monitoring Device) formats.
+A physics-based synthetic data generator for cold chain equipment (CCE) monitoring systems. Produces realistic time-series data conforming to the **CCE Data Delivery** specification — the draft standard for delivering vaccine refrigerator monitoring data from equipment suppliers to national systems — for both EMS (Equipment Monitoring System) and RTMD (Remote Temperature Monitoring Device) transfer types.
 
-Built as a drop-in replacement for a previous database-dependent approach, this simulator generates data entirely from first principles — no external data sources required.
+- Specification and schema drafts: <https://docs.2to8.cc/cce-data-interop/overview/>
+- Schema version emitted: **`cce-interop` 0.8.1**
+
+### Who this is for
+
+Anyone who needs realistic CCE monitoring data but does not have access to a real fleet:
+
+- **Country / employer system implementers** building the ingestion side of the CCE Data Delivery spec, who need conformant payloads to test against before any supplier is connected.
+- **Equipment suppliers and integrators** validating their own delivery implementation.
+- **Researchers and tool builders** who need temperature time series with known, labelled fault conditions — the ground truth that real fleet data never comes with.
+
+The simulator generates data entirely from first principles. It needs no database, no network, and no external data source: the temperature series is produced by integrating a thermal model of the refrigerator, not by replaying recorded data.
 
 Available in two implementations:
 
-- **[Python](README_PYTHON.md)** — the original implementation, with Pydantic schemas, Locust load testing, and Jupyter notebook examples
+- **[Python](README_PYTHON.md)** — the reference implementation, with Pydantic schemas, Locust load testing, and Jupyter notebook examples
 - **[JavaScript](README_JAVASCRIPT.md)** — a port for use in JS applications, with a seedable PRNG and no external dependencies beyond that
+
+## Install and quick start
+
+### Python
+
+```bash
+git clone <repository-url> && cd ems-data-simulator
+pipenv install --dev      # or: pip install "pydantic>=2.4,<3" python-dateutil pytz
+```
+
+Generate one day of 15-minute records from a mains-powered fridge in a tropical climate:
+
+```python
+import datetime as dt
+from utils.simulator import SimulatedRecordSet, default_config
+
+config = default_config(power_type="mains", latitude=12.0)
+rs = SimulatedRecordSet.generate(
+    config, batch_size=96, start_time=dt.datetime(2024, 6, 15), interval=900,
+)
+
+for r in rs.records[:3]:
+    print(r["ABST"], r["TVC"], r["TAMB"], r["CMPR"])
+```
+
+To emit a complete, schema-conformant transmission instead of raw records, use the device layer:
+
+```python
+from utils.device import MonitoringDeviceConfig, BaseRtmDevice
+
+device = BaseRtmDevice(MonitoringDeviceConfig(type="ems", upload_interval=3600, sample_interval=900))
+report = device.create_report(report_time=dt.datetime(2024, 6, 15, 12, 0))
+```
+
+Verify the install:
+
+```bash
+python3 -m pytest tests/ -q
+```
+
+See **[README_PYTHON.md](README_PYTHON.md)** for fault injection, multi-day datasets, and Locust load testing.
+
+### JavaScript
+
+```bash
+cd js && npm install
+```
+
+```javascript
+import { SimulatedRecordSet, default_config } from './src/index.js';
+
+const config = default_config('mains', 12.0);
+config.random_seed = 42;                     // reproducible output
+const rs = SimulatedRecordSet.generate(config, 96, new Date(Date.UTC(2024, 5, 15)), 900);
+
+console.log(rs.records.slice(0, 3));
+```
+
+Verify the install:
+
+```bash
+cd js && npm test
+```
+
+See **[README_JAVASCRIPT.md](README_JAVASCRIPT.md)** for the full API reference.
 
 ## Architecture
 
@@ -96,14 +172,18 @@ Alarm excursion timers persist across sample intervals, so a HEAT alarm can accu
 
 ## Calibration
 
-Solar defaults are calibrated against real telemetry from an Aucma MetaFridge CFD-50 deployed in Abia State, Nigeria (see `data/fridge_data.json`). Key characteristics:
+The defaults are not invented. They are fitted to real-world performance data from over 1,000 Aucma MetaFridge CFD-50 devices deployed in Nigeria and Kenya. That underlying dataset is operational fleet data held by Phoenix Global Health and is **not public**, so it is not distributed with this repository — but the behaviour it produced is captured in the defaults, and the resulting output characteristics are described below so they can be checked against your own fleet.
+
+Solar direct drive defaults reproduce these observed characteristics:
 
 - TVC remarkably stable at 3.6-4.2 C (ice-lined thermal mass)
 - Compressor runs only during solar hours (~22% of intervals)
 - DCSV follows a clean bell curve peaking at ~20V
 - BLOG (logger battery) charges during the day, drains slowly overnight
 
-Refrigerant leak decay rate (default 0.002/hour) is calibrated from a 62-day degradation timeline observed in reference unit `2807-CB2A-0A00-00C8`.
+The refrigerant leak decay rate (default 0.002/hour) is fitted to a 62-day degradation timeline observed on a single reference unit in that fleet.
+
+The door behaviour presets below are calibrated separately, from a fleet-wide analysis of 1,225 fridges over Jan 2021 - Dec 2022.
 
 ## Extending for different refrigerator types
 

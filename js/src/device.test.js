@@ -290,7 +290,7 @@ describe("transferMetadata", () => {
     expect(meta.transferId).toBeDefined();
     expect(meta.transferSrc).toBe("org.nhgh");
     expect(meta.transferType).toBe("rtm");
-    expect(meta.schemaVersion).toBe("0.8.0");
+    expect(meta.schemaVersion).toBe("0.8.1");
     // transferCallbackUrl is omitted entirely when no webhook URL is supplied.
     expect(meta).not.toHaveProperty("callbackUrl");
     expect(meta).not.toHaveProperty("transferCallbackUrl");
@@ -300,7 +300,7 @@ describe("transferMetadata", () => {
   it("returns ems transferType and semver schemaVersion for EMS", () => {
     const meta = transferMetadata("ems");
     expect(meta.transferType).toBe("ems");
-    expect(meta.schemaVersion).toBe("0.8.0");
+    expect(meta.schemaVersion).toBe("0.8.1");
   });
 });
 

@@ -1,4 +1,4 @@
-"""Phase 2 PoC driver (ccesim-jby.4): generate -> transform -> validate.
+"""Transform PoC driver: generate -> transform -> validate.
 
 1. Generate a real cce-interop EMS transmission from the simulator (incl. a fault
    so alarms/errors exercise the coded-Observation path).
@@ -73,7 +73,7 @@ def validate_bundle(bundle: dict) -> dict:
 
 
 def assert_acceptance(bundle: dict) -> list[str]:
-    """Check the acceptance criteria for ccesim-jby.4."""
+    """Check the acceptance criteria for the transform PoC."""
     checks = []
     obs = [e["resource"] for e in bundle["entry"] if e["resource"]["resourceType"] == "Observation"]
     devs = [e["resource"] for e in bundle["entry"] if e["resource"]["resourceType"] == "Device"]
@@ -116,7 +116,7 @@ def main() -> int:
           f"{counts['Device']} Devices, {counts['Observation']} Observations "
           f"({counts['other']} other). All validated against FHIR R4 (fhir.resources).")
 
-    print("\nAcceptance checks (ccesim-jby.4):")
+    print("\nAcceptance checks:")
     ok = True
     for label, passed in assert_acceptance(bundle):
         print(f"  [{'PASS' if passed else 'FAIL'}] {label}")

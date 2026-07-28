@@ -1,12 +1,35 @@
 # Python Implementation
 
-The original Python implementation of the CCE thermal simulator. See [README.md](README.md) for architecture and physics documentation.
+The reference Python implementation of the CCE thermal simulator. See [README.md](README.md) for architecture and physics documentation.
 
 ## Dependencies
 
-Production: **Pydantic 2.x** (schema validation). The simulation engine itself is pure Python standard library.
+Runtime: **Pydantic 2.x** (schema validation), plus `python-dateutil` and `pytz`. The simulation engine itself is pure Python standard library — only the schema layer (`utils/schemas.py`) needs Pydantic.
 
 Development: pytest, numpy, pandas, matplotlib, locust (see `Pipfile`).
+
+## Install
+
+Requires Python 3.12.
+
+```bash
+pipenv install          # runtime dependencies only
+pipenv install --dev    # adds pytest, locust, and the notebook/plotting stack
+pipenv shell
+```
+
+Or without pipenv:
+
+```bash
+pip install "pydantic>=2.4,<3" python-dateutil pytz
+pip install pytest locust python-dotenv matplotlib numpy pandas   # development extras
+```
+
+Verify:
+
+```bash
+python3 -m pytest tests/ -q
+```
 
 ## Quick start
 
@@ -146,7 +169,7 @@ config = SimulationConfig(
 
 ## Locust load testing
 
-The `locustfile.py` integrates the simulator with [Locust](https://locust.io/) for load testing a CCE data ingestion endpoint. Each Locust user represents a single CCE device sending a pre-generated series of CCDX-formatted reports.
+The `locustfile.py` integrates the simulator with [Locust](https://locust.io/) for load testing a CCE data ingestion endpoint. Each Locust user represents a single CCE device sending a pre-generated series of CCE Data Delivery reports.
 
 During startup, each virtual user creates a `BaseRtmDevice`, pre-generates a queue of sequential reports, then POSTs them one at a time. State carries over between reports for physical continuity. Load volume comes from spawning many users (each a distinct device), not from time compression.
 
@@ -232,7 +255,7 @@ utils/
 ├── devicegroups.py          PQS equipment catalog
 ├── facilities.py            Facility data (Sokoto State, Nigeria)
 ├── generator.py             Serial numbers, transfer metadata
-└── schemas.py               Pydantic models (CCDX schema)
+└── schemas.py               Pydantic models (cce-interop 0.8.1 schema)
 
 tests/
 ├── test_thermal.py          Thermal model unit tests
@@ -245,7 +268,6 @@ tests/
 
 locustfile.py                Locust load test configuration
 simulator_examples.ipynb     Interactive examples with plots
-data/fridge_data.json        MetaFridge reference data (calibration)
 ```
 
 ## Running tests

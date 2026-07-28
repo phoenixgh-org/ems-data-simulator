@@ -45,7 +45,7 @@ def transfer_metadata():
         'transferSrc': 'org.nhgh',
         'transferredAt': datetime.now(pytz.utc),
         'transferType': 'rtm',
-        'schemaVersion': '0.8.0',
+        'schemaVersion': '0.8.1',
         # transferCallbackUrl is omitted when no webhook URL is supplied.
     }
     return obj

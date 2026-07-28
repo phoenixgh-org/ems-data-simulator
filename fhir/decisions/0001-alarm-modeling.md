@@ -1,9 +1,8 @@
 # ADR 0001 — Modeling ALRM/EERR/LERR: Observation base + DetectedIssue episodes
 
 - **Status:** Accepted (subject to confirmation with a country / eLMIS consumer)
-- **Decision bead:** `ccesim-jby.3`
 - **Date:** 2026-06-16
-- **Affects:** Phase 2 transform (`fhir/transform/`), Phase 3 profiles (`ccesim-jby.5`)
+- **Affects:** the transform (`fhir/transform/`) and the future profiles
 
 ## Context
 
@@ -30,7 +29,7 @@ Three candidate FHIR representations were considered:
 **Dual representation, by purpose:**
 
 1. **Per-record codes → coded `Observation` (the lossless base).** Keep what the
-   Phase 2 transform already does: every `ALRM`/`EERR`/`LERR` code on a record
+   transform already does: every `ALRM`/`EERR`/`LERR` code on a record
    becomes a coded `Observation` (`valueCodeableConcept`). This is the faithful,
    reversible projection of the wire data and queries uniformly with telemetry.
 
@@ -55,11 +54,11 @@ derives indicators" model).
 
 ## Consequences
 
-- Phase 3 (`ccesim-jby.5`) profiles `DetectedIssue` and adds `evidence.detail`
+- A future profiling pass profiles `DetectedIssue` and adds `evidence.detail`
   links from each episode to its contributing temperature `Observation`s, and
   decides the severity taxonomy with a consumer in the loop.
 - The base `Observation` stream is unchanged, so nothing about this decision
-  blocks or rewrites Phase 2.
+  blocks or rewrites the existing transform.
 - Open for confirmation: whether downstream consumers (eLMIS/HMIS) prefer episodes
   keyed differently (e.g. per-day rollups) — the interop layer can offer multiple
   derivations off the same `Observation` base.
