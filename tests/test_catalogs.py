@@ -225,6 +225,70 @@ class TestFromDir:
         with pytest.raises(ValueError):
             Catalogs.from_dir(tmp_path / 'nope')
 
+    def test_an_uppercase_extension_is_found(self, tmp_path):
+        # Excel and several GIS exporters write .CSV. from_files() already
+        # accepts it, and from_dir() used to silently ignore it and hand back
+        # the packaged Sokoto facilities while the user believed their own
+        # registry had loaded.
+        directory = tmp_path / 'shouty'
+        directory.mkdir()
+        write_csv(directory / 'facilities.CSV', FACILITY_CSV)
+        write_json(directory / 'appliances.json', APPLIANCE_ROWS)
+        catalogs = Catalogs.from_dir(directory)
+        assert [f['facility_name'] for f in catalogs.facilities] == [
+            'Sokoto Hospital Specialist', 'Wamakko PHC'
+        ]
+
+    def test_an_uppercase_json_extension_is_found(self, tmp_path):
+        directory = tmp_path / 'shouty-json'
+        directory.mkdir()
+        write_json(directory / 'loggers.JSON', LOGGER_ROWS)
+        assert len(Catalogs.from_dir(directory).loggers) == 1
+
+    def test_an_uppercase_filename_is_found(self, tmp_path):
+        directory = tmp_path / 'shouty-name'
+        directory.mkdir()
+        write_csv(directory / 'Facilities.Csv', FACILITY_CSV)
+        assert len(Catalogs.from_dir(directory).facilities) == 2
+
+    def test_from_dir_and_from_files_agree_on_an_uppercase_extension(self, tmp_path):
+        directory = tmp_path / 'agreement'
+        directory.mkdir()
+        path = write_csv(directory / 'facilities.CSV', FACILITY_CSV)
+        assert (Catalogs.from_dir(directory).facilities
+                == Catalogs.from_files(facilities=path).facilities)
+
+    def test_two_formats_differing_only_in_extension_case_are_ambiguous(self, tmp_path):
+        directory = tmp_path / 'case-ambiguous'
+        directory.mkdir()
+        write_csv(directory / 'facilities.csv', FACILITY_CSV)
+        write_json(directory / 'facilities.JSON', FACILITY_ROWS)
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_dir(directory)
+        message = str(excinfo.value)
+        assert 'facilities.csv' in message
+        assert 'facilities.JSON' in message
+
+    def test_two_files_differing_only_in_name_case_are_ambiguous(self, tmp_path):
+        directory = tmp_path / 'name-ambiguous'
+        directory.mkdir()
+        write_csv(directory / 'facilities.csv', FACILITY_CSV)
+        write_csv(directory / 'Facilities.csv', FACILITY_CSV)
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_dir(directory)
+        assert 'keep only one' in str(excinfo.value)
+
+    def test_an_unsupported_extension_in_the_directory_is_ignored(self, tmp_path):
+        # A README or a spreadsheet left beside the catalogs must not be
+        # mistaken for one, nor stop the packaged fallback.
+        directory = tmp_path / 'with-clutter'
+        directory.mkdir()
+        (directory / 'facilities.xlsx').write_text('not a catalog', encoding='utf-8')
+        write_json(directory / 'appliances.json', APPLIANCE_ROWS)
+        catalogs = Catalogs.from_dir(directory)
+        assert len(catalogs.facilities) == len(facilities)
+        assert len(catalogs.appliances) == 2
+
 
 class TestFromFiles:
 
@@ -344,6 +408,62 @@ E003/007,E003/008,Vestfrost Solutions,MK 304,Icelined refrigerator
             Catalogs.from_files(appliances=path)
         message = str(excinfo.value)
         assert 'APQS' in message and 'pqs_code' in message
+
+    def test_a_repeated_column_name_is_an_error(self, tmp_path):
+        # csv.DictReader collapses same-named columns to the LAST value, so
+        # this used to load with latitude = 14.99: a plausible wrong number
+        # reaching the ambient and solar model instead of an error.
+        path = write_csv(tmp_path / 'facilities.csv', """
+iso,latitude,latitude,longitude
+NGA,13.06,14.99,5.25
+""")
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_files(facilities=path)
+        message = str(excinfo.value)
+        assert 'facilities.csv' in message
+        assert 'latitude' in message
+
+    def test_a_repeated_column_is_rejected_before_any_row_is_read(self, tmp_path):
+        # The header alone is enough; a file with no data rows must still fail
+        # rather than report the catalog as merely empty.
+        path = write_csv(tmp_path / 'facilities.csv', """
+iso,latitude,latitude,longitude
+""")
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_files(facilities=path)
+        assert 'latitude' in str(excinfo.value)
+
+    def test_a_repeated_column_differing_only_in_case_is_an_error(self, tmp_path):
+        path = write_csv(tmp_path / 'facilities.csv', """
+iso,latitude,Latitude,longitude
+NGA,13.06,14.99,5.25
+""")
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_files(facilities=path)
+        message = str(excinfo.value)
+        assert 'latitude' in message and 'Latitude' in message
+
+    def test_a_repeated_column_the_loader_does_not_recognize_is_an_error(self, tmp_path):
+        # A duplicated join column is just as much a sign of a broken export,
+        # and silently keeping the second value is just as wrong.
+        path = write_csv(tmp_path / 'facilities.csv', """
+facility_name,iso,latitude,longitude,openlmis_id,openlmis_id
+Sokoto Hospital Specialist,NGA,13.06,5.25,OLMIS-42,OLMIS-43
+""")
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_files(facilities=path)
+        assert 'openlmis_id' in str(excinfo.value)
+
+    def test_distinct_columns_that_merely_look_alike_still_load(self, tmp_path):
+        # Guards the duplicate check against over-reach: 'lga' and 'lga_name'
+        # are different columns and must both survive.
+        path = write_csv(tmp_path / 'facilities.csv', """
+facility_name,iso,latitude,longitude,lga,lga_name_disagreement
+Sokoto Hospital Specialist,NGA,13.06,5.25,Sokoto South,0
+""")
+        record = Catalogs.from_files(facilities=path).facilities[0]
+        assert record['lga'] == 'Sokoto South'
+        assert record['lga_name_disagreement'] == '0'
 
     def test_a_byte_order_mark_does_not_corrupt_the_first_column(self, tmp_path):
         path = tmp_path / 'facilities.csv'

@@ -287,6 +287,33 @@ def _clean_csv_row(row, location):
     return cleaned
 
 
+def _reject_duplicate_columns(path, fieldnames):
+    '''
+    Refuse a header row that names the same column twice.
+
+    `csv.DictReader` collapses same-named columns to the LAST value with no
+    warning, so a header duplicated by a hand-edit or a sloppy join would
+    otherwise put a plausible wrong number -- the second latitude cell --
+    into the ambient and solar model. The check has to run on the raw header
+    row, because by the time a row is a dict the evidence is gone.
+
+    Case and spacing are folded, so 'latitude' and 'Latitude' count as the
+    same column here rather than falling through to the synonym check below.
+    '''
+    seen = {}
+    for name in fieldnames:
+        folded = _normalize_key(name)
+        if folded in seen:
+            first = seen[folded]
+            clash = (
+                f"column {name!r} appears more than once"
+                if first == name
+                else f"columns {first!r} and {name!r} are the same column"
+            )
+            raise ValueError(f"{path}: {clash}; keep only one of them")
+        seen[folded] = name
+
+
 def _read_csv(path, kind):
     pairs = []
     # utf-8-sig so a byte-order mark from Excel does not become part of the
@@ -295,6 +322,7 @@ def _read_csv(path, kind):
         reader = csv.DictReader(handle)
         if reader.fieldnames is None:
             raise ValueError(f"{path}: file is empty; expected a header row")
+        _reject_duplicate_columns(path, reader.fieldnames)
         for row in reader:
             location = f"{path} line {reader.line_num}"
             pairs.append((location, _clean_csv_row(row, location)))
@@ -402,21 +430,32 @@ class Catalogs:
         Load `facilities`, `appliances` and `loggers` from a directory, each as
         either .json or .csv. A catalog with no file in the directory falls
         back to the packaged default.
+
+        Names are matched case-insensitively, so the `facilities.CSV` that
+        Excel and several GIS exporters produce is found here exactly as
+        `from_files()` already accepts it. Two files that both claim the same
+        catalog -- `facilities.csv` beside `facilities.JSON`, or beside
+        `Facilities.csv` -- is an error rather than a resolution by luck.
         '''
         directory = Path(path)
         if not directory.is_dir():
             raise ValueError(f"{directory}: not a catalog directory")
+        candidates = sorted(
+            (entry for entry in directory.iterdir() if entry.is_file()),
+            key=lambda entry: entry.name,
+        )
         found = {}
         for kind in CATALOG_KINDS:
             matches = [
-                directory / f"{kind}{suffix}"
-                for suffix in CATALOG_SUFFIXES
-                if (directory / f"{kind}{suffix}").is_file()
+                entry for entry in candidates
+                if entry.stem.lower() == kind
+                and entry.suffix.lower() in CATALOG_SUFFIXES
             ]
             if len(matches) > 1:
                 raise ValueError(
-                    f"{directory}: found both {matches[0].name} and "
-                    f"{matches[1].name}; keep only one"
+                    f"{directory}: found more than one {kind} catalog file ("
+                    + ', '.join(entry.name for entry in matches)
+                    + "); keep only one"
                 )
             if matches:
                 found[kind] = _read_path(matches[0], kind)
