@@ -450,13 +450,44 @@ class TestProvenanceManifest:
         assert 'GRID3' not in source
         assert manifest['facilities']['licence']
 
-    def test_nigeria_sokoto_reports_the_registry_provenance(self):
+    def test_nigeria_sokoto_reports_the_grid3_provenance(self):
         manifest = Catalogs.builtin('nigeria-sokoto').manifest
-        source = manifest['facilities']['source']
-        assert 'NHFR_2024' in source
-        assert 'GRID3_EHEALTH' in source
+        facilities = manifest['facilities']
+        source = facilities['source']
+        assert 'GRID3 NGA - Health Facilities v2.0' in source
+        # CC BY 4.0 obliges attribution, so the citation has to be carried.
+        assert 'CC BY 4.0' in facilities['licence']
+        assert 'doi.org/10.7916/kv1n-0743' in facilities['citation']
+        assert '2024-11-13' in facilities['vintage']
         # Its equipment is still the packaged sample, and says so.
         assert 'E003' in manifest['appliances']['source']
+
+    def test_the_sokoto_lineage_rule_holds_over_the_records(self):
+        # The manifest states a RULE about the per-record lineage flags, not a
+        # count: NHFR_2024 means the facility is in the national registry and
+        # carries an nhfr_uid, GRID3_EHEALTH means GRID3 found it and none
+        # exists. Prose describing data drifts silently unless something
+        # checks it -- ccesim-wdz was exactly that failure. This is the check.
+        catalogs = Catalogs.builtin('nigeria-sokoto')
+        source = catalogs.manifest['facilities']['source']
+        assert 'nhfr_uid' in source
+
+        seen = set()
+        for record in catalogs.facilities:
+            name_source = record['facility_name_source']
+            has_uid = bool(str(record['nhfr_uid'] or '').strip())
+            seen.add(name_source)
+            if name_source == 'NHFR_2024':
+                assert has_uid, f"{record['facility_name']} claims NHFR_2024 but has no nhfr_uid"
+            elif name_source == 'GRID3_EHEALTH':
+                assert not has_uid, f"{record['facility_name']} claims GRID3_EHEALTH but carries an nhfr_uid"
+            else:
+                raise AssertionError(
+                    f"unknown facility_name_source {name_source!r}; the manifest "
+                    f"describes only NHFR_2024 and GRID3_EHEALTH"
+                )
+        # The manifest says both kinds are present; hold it to that.
+        assert seen == {'NHFR_2024', 'GRID3_EHEALTH'}
 
     def test_pqs_e003_full_reports_the_who_catalogue(self):
         manifest = Catalogs.builtin('pqs-e003-full').manifest

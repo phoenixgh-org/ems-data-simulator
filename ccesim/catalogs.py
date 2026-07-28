@@ -519,15 +519,35 @@ _BUILTIN_MANIFESTS = {
     'nigeria-sokoto': {
         'facilities': {
             'source': (
-                'Nigeria Health Facility Registry (NHFR) for facility names, '
-                'GRID3 eHealth for coordinates; recorded per record as '
-                'facility_name_source=NHFR_2024 and '
-                'geocoordinates_source=GRID3_EHEALTH'
+                'GRID3 NGA - Health Facilities v2.0, published by the Center '
+                'for Integrated Earth System Information (CIESIN), Columbia '
+                'University. These 46 records are the Sokoto State subset, '
+                'reproduced verbatim. GRID3 v2.0 incorporates the Nigeria '
+                'Health Facility Registry (HFR, 2024) alongside facilities '
+                'from its own survey, so it is a single source rather than '
+                'two: the per-record facility_name_source and '
+                'geocoordinates_source fields are GRID3 own lineage flags, '
+                'recording which input it credited for that record. A '
+                'facility_name_source of NHFR_2024 means the facility is in '
+                'the national registry and carries an nhfr_uid; GRID3_EHEALTH '
+                'means GRID3 identified it and no nhfr_uid exists. Both kinds '
+                'are present in this subset.'
             ),
-            'vintage': 'NHFR 2024',
+            'vintage': 'v2.0, published 2024-11-13',
             'licence': (
-                'Both are public datasets; redistribution terms have not been '
-                'confirmed for this package'
+                'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0). '
+                'Copyright 2024 The Trustees of Columbia University in the '
+                'City of New York. Attribution is required; use the citation '
+                'below.'
+            ),
+            'citation': (
+                'Center for Integrated Earth System Information (CIESIN), '
+                'Columbia University. 2024. GRID3 NGA - Health Facilities '
+                'v2.0. New York: GRID3. https://doi.org/10.7916/kv1n-0743'
+            ),
+            'url': (
+                'https://data.grid3.org/datasets/'
+                'GRID3::grid3-nga-health-facilities-v2-0/about'
             ),
         },
     },
