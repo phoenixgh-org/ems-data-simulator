@@ -18,6 +18,23 @@ def device_label(device_dict):
     return f"{pqs} ({manufacturer} {model})"
 
 
+def device_manufacturer(device_dict):
+    '''
+    Return a catalog record's manufacturer, whichever key style it uses --
+    'AMFR' on an appliance record, 'LMFR' on a logger one.
+
+    Resolved per record rather than once per list, so a list that mixes the two
+    (or that happens to start with an odd row) still groups correctly.
+    '''
+    manufacturer = device_dict.get('AMFR') or device_dict.get('LMFR')
+    if manufacturer is None:
+        raise ValueError(
+            f"Catalog record {device_label(device_dict)} has no manufacturer: "
+            f"expected 'AMFR' or 'LMFR'"
+        )
+    return manufacturer
+
+
 def validate_power_type(power_type, label):
     '''
     Normalize and validate an explicit power_type value.
@@ -221,15 +238,6 @@ class DeviceGroup():
         for device_dict in self.devices:
             if 'power_type' in device_dict:
                 validate_power_type(device_dict['power_type'], device_label(device_dict))
-        self.manufacturer_key = self._resolve_manufacturer_key()
-
-    def _resolve_manufacturer_key(self):
-        '''
-        Determine the key to use for the manufacturer. This is necessary 
-        because the key is different for fridges, DTRs, and RTMDs (e.g., AMFR vs. LMFR).
-        '''
-        self.manufacturer_key = 'AMFR' if 'AMFR' in self.devices[0] else 'LMFR'
-        return self.manufacturer_key
 
     def random_device(self, manufacturer=None):
         '''
@@ -252,8 +260,10 @@ class DeviceGroup():
     
     def group_by_manufacturer(self):
         '''Return a dictionary of devices grouped by manufacturer'''
-        key = self.manufacturer_key
-        return {dev[key]: [d for d in self.devices if d[key] == dev[key]] for dev in self.devices}
+        groups = {}
+        for device_dict in self.devices:
+            groups.setdefault(device_manufacturer(device_dict), []).append(device_dict)
+        return groups
 
     def get_random_manufacturer(self):
         '''Return a random manufacturer name'''
