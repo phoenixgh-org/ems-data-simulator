@@ -1,7 +1,8 @@
 import datetime as dt
 import random
-from ccesim.devicegroups import DeviceGroup, rtmds, fridges, validate_power_type
-from ccesim.facilities import Facility, random_facility
+from ccesim.catalogs import Catalogs, default_catalogs
+from ccesim.devicegroups import DeviceGroup, validate_power_type
+from ccesim.facilities import Facility
 from ccesim.generator import random_serial, random_amid
 from ccesim.simulator import SimulatedRecordSet, SimulatorState, default_config
 import logging
@@ -21,8 +22,25 @@ class MonitoringDeviceConfig:
                  upload_interval: int = None,
                  sample_interval: int = None,
                  facility: Facility = None,
-                 manufacturer: str = None
+                 manufacturer: str = None,
+                 catalogs: Catalogs = None
                  ):
+        # The facility list and the two equipment lists this device is drawn
+        # from. Explicit argument wins; otherwise CCESIM_CATALOG_DIR, and
+        # failing that the packaged defaults. Resolved once and cached, so a
+        # load test building thousands of devices reads the files once.
+        if catalogs is None:
+            catalogs = default_catalogs()
+        elif not isinstance(catalogs, Catalogs):
+            # `catalogs.__class__`, not `type(catalogs)`: the `type` parameter
+            # of this constructor shadows the builtin.
+            raise TypeError(
+                f"catalogs must be a Catalogs, got "
+                f"{catalogs.__class__.__name__}; build one with "
+                f"Catalogs.from_dir() or Catalogs.from_files()"
+            )
+        self.catalogs = catalogs
+
         # Randomly select device type if not specified
         if type is None:
             type_options = ['rtmd', 'ems']
@@ -54,15 +72,15 @@ class MonitoringDeviceConfig:
         if isinstance(facility, Facility):
             self.facility = facility
         else:
-            self.facility = random_facility()
+            self.facility = Facility(random.choice(self.catalogs.facilities))
         self.manufacturer = manufacturer
 
         # Generate the appliance and device based on the type
-        dg_f = DeviceGroup(fridges)
+        dg_f = DeviceGroup(self.catalogs.appliances)
         self.appliance = dg_f.random_device() # random fridge
         self.device = self.appliance   # Assume that EMS devices have monitoring devices built-in
         if self.type == 'rtmd':
-            dg = DeviceGroup(rtmds)
+            dg = DeviceGroup(self.catalogs.loggers)
             self.device = dg.random_device(manufacturer=self.manufacturer)
 
 

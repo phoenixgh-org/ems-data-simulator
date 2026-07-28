@@ -34,6 +34,7 @@ None and producing silent nonsense.
 
 import csv
 import json
+import os
 from pathlib import Path
 from typing import NamedTuple
 
@@ -53,6 +54,11 @@ BUILTIN_CATALOGS = ('default',)
 
 #: Catalog file formats understood by `from_dir()` and `from_files()`.
 CATALOG_SUFFIXES = ('.json', '.csv')
+
+#: Environment variable naming a catalog directory to use when no `Catalogs`
+#: was passed explicitly. This is what makes the feature zero-code: it works
+#: for `locustfile.py`, the notebook and any downstream script unchanged.
+CATALOG_DIR_ENV = 'CCESIM_CATALOG_DIR'
 
 
 # ---------------------------------------------------------------------------
@@ -498,3 +504,52 @@ class Catalogs:
             f"Catalogs(facilities={len(self.facilities)}, "
             f"appliances={len(self.appliances)}, loggers={len(self.loggers)})"
         )
+
+
+# ---------------------------------------------------------------------------
+# Resolving the catalogs a consumer gets when it was passed none
+# ---------------------------------------------------------------------------
+
+#: Cache for `default_catalogs()`. Private, and cleared only through
+#: `reset_default_catalogs()`, so that a test which changes the environment can
+#: put the module back the way it found it.
+_default_catalogs = None
+
+
+def default_catalogs():
+    '''
+    The catalogs a consumer falls back to when it was handed none.
+
+    Resolved from `CCESIM_CATALOG_DIR` when that names a directory, and from
+    the packaged defaults otherwise. The result is cached, because a load test
+    builds many devices and none of them should re-read the files.
+
+    An unusable `CCESIM_CATALOG_DIR` is an error, never a quiet fall back to
+    the packaged catalogs: a user who set it meant it, and silently simulating
+    Sokoto instead of their own country is the failure this whole module
+    exists to prevent. An unset or empty value means "not asked for", which is
+    what an exported-but-blank variable in a shell profile means in practice.
+    '''
+    global _default_catalogs
+    if _default_catalogs is None:
+        directory = os.environ.get(CATALOG_DIR_ENV, '').strip()
+        if directory:
+            try:
+                _default_catalogs = Catalogs.from_dir(directory)
+            except (ValueError, TypeError, OSError) as exc:
+                raise ValueError(
+                    f"{CATALOG_DIR_ENV}={directory!r}: {exc}"
+                ) from None
+        else:
+            _default_catalogs = Catalogs()
+    return _default_catalogs
+
+
+def reset_default_catalogs():
+    '''
+    Drop the cached default, so the next `default_catalogs()` re-reads
+    `CCESIM_CATALOG_DIR`. Exists for tests: without it the cache would make
+    the resolution order depend on which test ran first.
+    '''
+    global _default_catalogs
+    _default_catalogs = None

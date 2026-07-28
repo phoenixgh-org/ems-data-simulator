@@ -12,8 +12,13 @@ import logging
 
 import pytest
 
-from ccesim.catalogs import Catalogs
-from ccesim.device import _resolve_power_type
+from ccesim.catalogs import (
+    CATALOG_DIR_ENV,
+    Catalogs,
+    default_catalogs,
+    reset_default_catalogs,
+)
+from ccesim.device import MonitoringDeviceConfig, _resolve_power_type
 from ccesim.devicegroups import (
     Device,
     DeviceGroup,
@@ -99,6 +104,21 @@ LOGGER_CSV = """
 LPQS,type,LMFR,LMOD
 E006/019,Remote Temperature Monitoring Device,Berlinger & Co. AG,SmartLine
 """
+
+
+@pytest.fixture(autouse=True)
+def clean_catalog_resolution():
+    """Resolve the default catalogs from scratch for every test in this module.
+
+    `default_catalogs()` caches, deliberately -- a load test builds thousands
+    of devices and must not re-read the files for each. That cache would
+    otherwise make the precedence tests depend on which one ran first, and
+    would leak whatever CCESIM_CATALOG_DIR the last one set into every other
+    test module.
+    """
+    reset_default_catalogs()
+    yield
+    reset_default_catalogs()
 
 
 @pytest.fixture
@@ -756,3 +776,150 @@ E003/007,Vestfrost Solutions,MK 304,Icelined refrigerator
     def test_device_manufacturer_rejects_a_record_with_neither(self):
         with pytest.raises(ValueError):
             device_manufacturer({'APQS': 'E003/007'})
+
+
+# ===========================================================================
+# Resolution order: explicit catalogs= > CCESIM_CATALOG_DIR > packaged default
+# ===========================================================================
+
+CATALOG_FACILITY_NAMES = {'Sokoto Hospital Specialist', 'Wamakko PHC'}
+CATALOG_APPLIANCE_CODES = {'E003/007', 'E003/030'}
+
+
+class TestDefaultCatalogResolution:
+    """`default_catalogs()` is the whole zero-code story, so pin its order."""
+
+    def test_the_packaged_default_when_nothing_is_set(self, monkeypatch):
+        monkeypatch.delenv(CATALOG_DIR_ENV, raising=False)
+        assert len(default_catalogs().facilities) == len(facilities)
+
+    def test_the_environment_variable_is_used_when_set(self, monkeypatch, csv_dir):
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(csv_dir))
+        catalogs = default_catalogs()
+        assert {f['facility_name'] for f in catalogs.facilities} == CATALOG_FACILITY_NAMES
+        assert {a['APQS'] for a in catalogs.appliances} == CATALOG_APPLIANCE_CODES
+
+    def test_an_empty_environment_variable_means_unset(self, monkeypatch):
+        monkeypatch.setenv(CATALOG_DIR_ENV, '')
+        assert len(default_catalogs().facilities) == len(facilities)
+
+    def test_a_missing_directory_fails_loudly(self, monkeypatch, tmp_path):
+        # The one thing this must never do is fall back to the packaged
+        # Nigerian defaults, which would silently simulate the wrong country.
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(tmp_path / 'no-such-catalog'))
+        with pytest.raises(ValueError) as excinfo:
+            default_catalogs()
+        message = str(excinfo.value)
+        assert CATALOG_DIR_ENV in message
+        assert 'no-such-catalog' in message
+
+    def test_an_empty_directory_fails_loudly(self, monkeypatch, tmp_path):
+        directory = tmp_path / 'nothing-in-here'
+        directory.mkdir()
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(directory))
+        with pytest.raises(ValueError) as excinfo:
+            default_catalogs()
+        assert 'no catalog files' in str(excinfo.value)
+
+    def test_a_broken_catalog_file_fails_loudly(self, monkeypatch, tmp_path):
+        directory = tmp_path / 'broken'
+        directory.mkdir()
+        write_csv(directory / 'facilities.csv', """
+facility_name,iso,latitude,longitude
+Wamakko PHC,NGA,,5.11
+""")
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(directory))
+        with pytest.raises(ValueError) as excinfo:
+            default_catalogs()
+        assert 'latitude' in str(excinfo.value)
+
+    def test_the_files_are_read_once_and_cached(self, monkeypatch, csv_dir, json_dir):
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(csv_dir))
+        first = default_catalogs()
+        assert default_catalogs() is first
+        # Changing the environment does not reach into the cache: a load test
+        # building thousands of devices must not re-read the files.
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(json_dir))
+        assert default_catalogs() is first
+
+    def test_resetting_makes_the_next_call_re_read(self, monkeypatch, csv_dir):
+        monkeypatch.delenv(CATALOG_DIR_ENV, raising=False)
+        assert len(default_catalogs().facilities) == len(facilities)
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(csv_dir))
+        reset_default_catalogs()
+        assert len(default_catalogs().facilities) == 2
+
+
+class TestMonitoringDeviceConfigCatalogs:
+    """The three call sites in MonitoringDeviceConfig, at each ceremony level."""
+
+    def test_an_explicit_catalogs_object_is_used(self, monkeypatch, csv_dir):
+        monkeypatch.delenv(CATALOG_DIR_ENV, raising=False)
+        config = MonitoringDeviceConfig(type='rtmd', catalogs=Catalogs.from_dir(csv_dir))
+        assert config.facility.facility_name in CATALOG_FACILITY_NAMES
+        assert config.appliance.pqs_code in CATALOG_APPLIANCE_CODES
+        assert config.device.model == 'SmartLine'
+
+    def test_the_environment_variable_needs_no_code_change(self, monkeypatch, csv_dir):
+        # This is the locustfile.py / notebook path: MonitoringDeviceConfig is
+        # constructed exactly as it is today, with nothing passed.
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(csv_dir))
+        config = MonitoringDeviceConfig(type='rtmd')
+        assert config.facility.facility_name in CATALOG_FACILITY_NAMES
+        assert config.device.model == 'SmartLine'
+
+    def test_an_explicit_catalogs_object_beats_the_environment_variable(
+        self, monkeypatch, csv_dir, json_dir
+    ):
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(json_dir))
+        only = Catalogs(
+            facilities=[dict(FACILITY_ROWS[0], facility_name='Argued For')],
+            appliances=APPLIANCE_ROWS,
+            loggers=LOGGER_ROWS,
+        )
+        config = MonitoringDeviceConfig(type='ems', catalogs=only)
+        assert config.facility.facility_name == 'Argued For'
+
+    def test_the_packaged_default_when_neither_is_given(self, monkeypatch):
+        monkeypatch.delenv(CATALOG_DIR_ENV, raising=False)
+        config = MonitoringDeviceConfig(type='ems')
+        assert len(config.catalogs.facilities) == len(facilities)
+        assert len(config.catalogs.appliances) == len(fridges)
+
+    def test_an_unusable_environment_variable_reaches_the_caller(
+        self, monkeypatch, tmp_path
+    ):
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(tmp_path / 'absent'))
+        with pytest.raises(ValueError) as excinfo:
+            MonitoringDeviceConfig(type='ems')
+        assert CATALOG_DIR_ENV in str(excinfo.value)
+
+    def test_an_explicit_facility_still_wins_over_the_catalog(self, monkeypatch, csv_dir):
+        # Passing one specific facility stays a distinct, useful thing.
+        monkeypatch.delenv(CATALOG_DIR_ENV, raising=False)
+        chosen = Facility({'facility_name': 'Chosen PHC', 'iso': 'KEN',
+                           'latitude': -1.28, 'longitude': 36.82})
+        config = MonitoringDeviceConfig(
+            type='ems', facility=chosen, catalogs=Catalogs.from_dir(csv_dir)
+        )
+        assert config.facility is chosen
+        assert config.appliance.pqs_code in CATALOG_APPLIANCE_CODES
+
+    def test_manufacturer_still_filters_within_the_catalog(self, monkeypatch, csv_dir):
+        monkeypatch.delenv(CATALOG_DIR_ENV, raising=False)
+        config = MonitoringDeviceConfig(
+            type='rtmd', manufacturer='Berlinger',
+            catalogs=Catalogs.from_dir(csv_dir),
+        )
+        assert config.device.manufacturer == 'Berlinger & Co. AG'
+
+    def test_every_device_shares_one_resolved_catalog(self, monkeypatch, csv_dir):
+        monkeypatch.setenv(CATALOG_DIR_ENV, str(csv_dir))
+        first = MonitoringDeviceConfig(type='ems')
+        second = MonitoringDeviceConfig(type='rtmd')
+        assert first.catalogs is second.catalogs
+
+    def test_a_path_passed_as_catalogs_is_refused(self, csv_dir):
+        with pytest.raises(TypeError) as excinfo:
+            MonitoringDeviceConfig(type='ems', catalogs=str(csv_dir))
+        assert 'Catalogs' in str(excinfo.value)
