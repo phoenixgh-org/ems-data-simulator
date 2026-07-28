@@ -1,3 +1,21 @@
+'''
+Facility catalog.
+
+`facilities` is THE PACKAGED DEFAULT: seven synthetic, obviously illustrative
+facilities, sited at plausible cold chain latitudes from the subtropics north
+(Nepal) through the equator (DR Congo, Kenya) to the subtropics south
+(Mozambique). Latitude is a physics input, not a label -- it feeds
+`default_config(latitude=...)`, which drives the ambient temperature cycle and
+the solar bell curve -- so a default set confined to one state of one country
+made every simulated fridge share one climate. These names are examples; no real
+health facility is named here.
+
+Bring your own registry export with `Catalogs.from_dir()` or
+`CCESIM_CATALOG_DIR`. The 46 real Sokoto State (Nigeria) facilities the
+simulator used to default to are kept as `nigeria_sokoto_facilities`, opt-in
+through `Catalogs.builtin('nigeria-sokoto')`.
+'''
+
 import random
 
 class Coordinates:
@@ -49,7 +67,10 @@ def random_facility(index=None):
   return Facility(facilities[index])
 
 
-facilities = [
+#: The 46 real Sokoto State facilities (NHFR 2024 / GRID3 eHealth) the
+#: simulator used to ship as its default. Opt in with
+#: `Catalogs.builtin('nigeria-sokoto')`.
+nigeria_sokoto_facilities = [
   {
     "OBJECTID": 8898,
     "globalid": "dd406d00-6708-4c6c-9b81-c6b903e405b4",
@@ -1107,6 +1128,176 @@ facilities = [
     "longitude": 5.24825041,
     "geocoordinates_source": "NHFR_2024",
     "last_updated": "2024-11-11"
+  }
+]
+
+#: THE PACKAGED DEFAULT FACILITY CATALOG. Synthetic and illustrative: the
+#: facility, ward and district names are invented, while the country, ISO code
+#: and coordinates are real places, because latitude drives the ambient and
+#: solar models and an implausible one produces incoherent output. Seven sites
+#: spanning roughly 28 degrees north to 26 degrees south, so the default demo
+#: covers subtropical, tropical and equatorial climates instead of one town.
+facilities = [
+  {
+    "OBJECTID": 1,
+    "globalid": "63de8e58-fab0-40ed-963b-aff478a604f5",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Nepal",
+    "iso": "NPL",
+    "state": "Bagmati",
+    "lga": "Example Hill District",
+    "lga_name_disagreement": 0,
+    "ward": "Example Ward 1",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Central Vaccine Store",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "National Government",
+    "facility_level": "Tertiary",
+    "facility_level_option": "General Hospital",
+    "latitude": 27.7172,
+    "longitude": 85.324,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
+  },
+  {
+    "OBJECTID": 2,
+    "globalid": "12990173-3ffb-49fd-a411-291795079e9f",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Nigeria",
+    "iso": "NGA",
+    "state": "Example Sahel State",
+    "lga": "Example North LGA",
+    "lga_name_disagreement": 0,
+    "ward": "Example Ward A",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Sahel District Hospital",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "State Government",
+    "facility_level": "Secondary",
+    "facility_level_option": "General Hospital",
+    "latitude": 13.0623,
+    "longitude": 5.2576,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
+  },
+  {
+    "OBJECTID": 3,
+    "globalid": "804bff16-83bc-437a-a5ac-3161a55d7c4b",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Ethiopia",
+    "iso": "ETH",
+    "state": "Example Highland Region",
+    "lga": "Example Highland Woreda",
+    "lga_name_disagreement": 0,
+    "ward": "Example Kebele 3",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Highland Health Centre",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "Regional Government",
+    "facility_level": "Primary",
+    "facility_level_option": "Primary Health Center",
+    "latitude": 9.03,
+    "longitude": 38.74,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
+  },
+  {
+    "OBJECTID": 4,
+    "globalid": "dcac2ba0-cbcf-4f1c-b7c6-29e9ff7f87ff",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Democratic Republic of the Congo",
+    "iso": "COD",
+    "state": "Example Equateur Province",
+    "lga": "Example Riverine Territory",
+    "lga_name_disagreement": 0,
+    "ward": "Example Aire de Sante 2",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Riverine Health Post",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "Provincial Government",
+    "facility_level": "Primary",
+    "facility_level_option": "Health Post",
+    "latitude": 0.515,
+    "longitude": 25.19,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
+  },
+  {
+    "OBJECTID": 5,
+    "globalid": "62f5775b-67fa-4580-8583-8436aac87d7a",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Kenya",
+    "iso": "KEN",
+    "state": "Example Capital County",
+    "lga": "Example Sub-County",
+    "lga_name_disagreement": 0,
+    "ward": "Example Ward B",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Urban Health Clinic",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "County Government",
+    "facility_level": "Primary",
+    "facility_level_option": "Primary Health Clinic",
+    "latitude": -1.2864,
+    "longitude": 36.8172,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
+  },
+  {
+    "OBJECTID": 6,
+    "globalid": "61dcc279-f670-48bc-9df0-275ddf08f959",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Zambia",
+    "iso": "ZMB",
+    "state": "Example Central Province",
+    "lga": "Example Central District",
+    "lga_name_disagreement": 0,
+    "ward": "Example Ward C",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Provincial Cold Store",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "National Government",
+    "facility_level": "Secondary",
+    "facility_level_option": "General Hospital",
+    "latitude": -15.4167,
+    "longitude": 28.2833,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
+  },
+  {
+    "OBJECTID": 7,
+    "globalid": "8456d941-9b35-4269-b2af-40c9744bae49",
+    "nhfr_uid": None,
+    "nhfr_facility_code": "",
+    "country": "Mozambique",
+    "iso": "MOZ",
+    "state": "Example Coastal Province",
+    "lga": "Example Coastal District",
+    "lga_name_disagreement": 0,
+    "ward": "Example Ward D",
+    "ward_name_disagreement": 0,
+    "facility_name": "Example Coastal Health Centre",
+    "facility_name_source": "SYNTHETIC_EXAMPLE",
+    "ownership": "Public",
+    "ownership_type": "Provincial Government",
+    "facility_level": "Primary",
+    "facility_level_option": "Primary Health Center",
+    "latitude": -25.9653,
+    "longitude": 32.5892,
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "last_updated": "2026-07-28"
   }
 ]
 

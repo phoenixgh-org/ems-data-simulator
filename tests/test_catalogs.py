@@ -161,9 +161,44 @@ class TestBuiltinCatalogs:
 
     def test_unknown_builtin_name_is_rejected(self):
         with pytest.raises(ValueError) as excinfo:
-            Catalogs.builtin('nigeria-sokoto')
-        assert 'nigeria-sokoto' in str(excinfo.value)
+            Catalogs.builtin('kenya-nairobi')
+        assert 'kenya-nairobi' in str(excinfo.value)
         assert 'default' in str(excinfo.value)
+
+    def test_the_default_facilities_are_a_small_illustrative_sample(self):
+        # The point of the sample: a handful of facilities spanning real
+        # climates, rather than a whole registry all in one town.
+        assert 6 <= len(facilities) <= 8
+        latitudes = [record['latitude'] for record in facilities]
+        assert max(latitudes) - min(latitudes) > 25
+
+    def test_the_default_appliances_cover_both_power_types(self):
+        assert 4 <= len(fridges) <= 8
+        assert {record['power_type'] for record in fridges} == {'solar', 'mains'}
+
+    def test_nigeria_sokoto_restores_the_full_facility_list(self):
+        catalogs = Catalogs.builtin('nigeria-sokoto')
+        assert len(catalogs.facilities) == 46
+        assert catalogs.facilities[0]['facility_name'] == 'Sokoto Hospital Specialist'
+        # Only the facilities are replaced; the equipment stays the sample.
+        assert len(catalogs.appliances) == len(fridges)
+        assert len(catalogs.loggers) == len(rtmds)
+
+    def test_pqs_e003_full_restores_the_full_equipment_lists(self):
+        catalogs = Catalogs.builtin('pqs-e003-full')
+        assert len(catalogs.appliances) == 96
+        assert len(catalogs.loggers) == 13
+        assert len(catalogs.facilities) == len(facilities)
+
+    def test_every_appliance_in_the_full_catalog_declares_a_power_type(self):
+        for record in Catalogs.builtin('pqs-e003-full').appliances:
+            assert record['power_type'] in ('solar', 'mains'), record['APQS']
+
+    def test_the_full_builtins_are_usable_end_to_end(self):
+        config = MonitoringDeviceConfig(
+            type='rtmd', catalogs=Catalogs.builtin('nigeria-sokoto')
+        )
+        assert config.facility.state == 'Sokoto'
 
     def test_the_packaged_literals_are_not_mutated(self):
         before = [dict(record) for record in fridges]
@@ -842,8 +877,8 @@ class TestDefaultCatalogResolution:
         assert len(default_catalogs().facilities) == len(facilities)
 
     def test_a_missing_directory_fails_loudly(self, monkeypatch, tmp_path):
-        # The one thing this must never do is fall back to the packaged
-        # Nigerian defaults, which would silently simulate the wrong country.
+        # The one thing this must never do is fall back to the packaged example
+        # facilities, which would silently simulate the wrong country.
         monkeypatch.setenv(CATALOG_DIR_ENV, str(tmp_path / 'no-such-catalog'))
         with pytest.raises(ValueError) as excinfo:
             default_catalogs()

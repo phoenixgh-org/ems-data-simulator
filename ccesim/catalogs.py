@@ -11,10 +11,17 @@ in `ccesim.facilities` and `ccesim.devicegroups`.
     Catalogs(facilities=[...], appliances=[...])     # lists of dicts in hand
     Catalogs.from_dir('./ke-catalog')                # facilities/appliances/loggers.{json,csv}
     Catalogs.from_files(facilities='hfr_export.csv', appliances='fridges.json')
-    Catalogs.builtin('default')                      # a named packaged catalog
+    Catalogs.builtin('nigeria-sokoto')                # a named packaged catalog
 
 Anything not supplied falls back to the packaged default, so a country that
 only has its own facility list keeps the packaged PQS equipment catalogs.
+
+THE PACKAGED DEFAULT IS A SAMPLE, NOT A REFERENCE DATASET: seven synthetic
+facilities spanning subtropical to equatorial latitudes, six appliances and
+three loggers, sized to demonstrate the simulator rather than to describe any
+country's real estate. The full sets it used to ship are still here as named
+builtins -- `'nigeria-sokoto'` for the 46 real Sokoto State facilities and
+`'pqs-e003-full'` for the whole prequalified equipment catalogue.
 
 BOTH JSON AND CSV ARE ACCEPTED. JSON is an array of objects, matching the shape
 of the packaged literals. CSV is what a country program actually has, because
@@ -43,14 +50,16 @@ from ccesim.devicegroups import (
     validate_power_type,
     fridges as _DEFAULT_APPLIANCES,
     rtmds as _DEFAULT_LOGGERS,
+    pqs_e003_fridges as _PQS_APPLIANCES,
+    pqs_e006_rtmds as _PQS_LOGGERS,
 )
-from ccesim.facilities import facilities as _DEFAULT_FACILITIES
+from ccesim.facilities import (
+    facilities as _DEFAULT_FACILITIES,
+    nigeria_sokoto_facilities as _SOKOTO_FACILITIES,
+)
 
 #: The three catalogs a Catalogs object carries.
 CATALOG_KINDS = ('facilities', 'appliances', 'loggers')
-
-#: Named packaged catalogs resolvable through `Catalogs.builtin()`.
-BUILTIN_CATALOGS = ('default',)
 
 #: Catalog file formats understood by `from_dir()` and `from_files()`.
 CATALOG_SUFFIXES = ('.json', '.csv')
@@ -365,13 +374,28 @@ def _read_path(path, kind):
 # Catalogs
 # ---------------------------------------------------------------------------
 
+#: The named packaged catalogs. 'default' is the small illustrative sample the
+#: simulator falls back to; the others are the full sets it used to ship as
+#: that default, kept opt-in. A builtin names only the catalogs it replaces --
+#: everything else falls back to the default, so 'nigeria-sokoto' is the real
+#: Sokoto facility list against the sample equipment, not a second copy of it.
 _BUILTIN_RECORDS = {
     'default': {
         'facilities': _DEFAULT_FACILITIES,
         'appliances': _DEFAULT_APPLIANCES,
         'loggers': _DEFAULT_LOGGERS,
     },
+    'nigeria-sokoto': {
+        'facilities': _SOKOTO_FACILITIES,
+    },
+    'pqs-e003-full': {
+        'appliances': _PQS_APPLIANCES,
+        'loggers': _PQS_LOGGERS,
+    },
 }
+
+#: Named packaged catalogs resolvable through `Catalogs.builtin()`.
+BUILTIN_CATALOGS = tuple(_BUILTIN_RECORDS)
 
 
 def _prepare(loaded, kind):
@@ -431,13 +455,22 @@ class Catalogs:
 
     @classmethod
     def builtin(cls, name='default'):
-        '''Load a named catalog packaged with the simulator.'''
+        '''
+        Load a named catalog packaged with the simulator.
+
+            Catalogs.builtin('default')         # the illustrative sample
+            Catalogs.builtin('nigeria-sokoto')  # 46 real Sokoto facilities
+            Catalogs.builtin('pqs-e003-full')   # the whole PQS equipment list
+
+        A builtin only replaces the catalogs it names; the rest stay the
+        packaged default.
+        '''
         if name not in BUILTIN_CATALOGS:
             raise ValueError(
                 f"Unknown builtin catalog {name!r}: expected one of "
                 f"{', '.join(repr(n) for n in BUILTIN_CATALOGS)}"
             )
-        return cls()
+        return cls(**_BUILTIN_RECORDS[name])
 
     @classmethod
     def from_dir(cls, path):
@@ -535,8 +568,8 @@ def default_catalogs():
 
     An unusable `CCESIM_CATALOG_DIR` is an error, never a quiet fall back to
     the packaged catalogs: a user who set it meant it, and silently simulating
-    Sokoto instead of their own country is the failure this whole module
-    exists to prevent. An unset or empty value means "not asked for", which is
+    the packaged example facilities instead of their own country is the failure
+    this whole module exists to prevent. An unset or empty value means "not asked for", which is
     what an exported-but-blank variable in a shell profile means in practice.
     '''
     global _default_catalogs

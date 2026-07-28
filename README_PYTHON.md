@@ -256,9 +256,10 @@ ccesim/
 │   ├── power.py             Mains and solar power models
 │   ├── events.py            Door generation, fault injection, alarms
 │   └── recordset.py         Orchestration and schema conversion
+├── catalogs.py              Pluggable facility and equipment catalog loader
 ├── device.py                High-level device + report generation
-├── devicegroups.py          PQS equipment catalog
-├── facilities.py            Facility data (Sokoto State, Nigeria)
+├── devicegroups.py          Sample PQS equipment catalog (+ the full E003/E006 lists)
+├── facilities.py            Sample facility catalog (synthetic, 27°N–26°S)
 ├── generator.py             Serial numbers, transfer metadata
 └── schemas.py               Pydantic models (cce-interop 0.8.1 schema)
 
@@ -269,6 +270,8 @@ tests/
 ├── test_recordset.py        Integration tests
 ├── test_generation.py       Device + report end-to-end tests
 ├── test_facilities.py       Facility data tests
+├── test_catalogs.py         Pluggable catalog loader tests
+├── test_power_type.py       Appliance power-type resolution tests
 └── test_rtmd.py             Schema validation tests
 
 locustfile.py                Locust load test configuration

@@ -71,7 +71,7 @@ class Device:
         '''
         Create a Device instance from a dictionary. Automatically resolves
         the correct keys for manufacturer, model, and pqs_code based on the
-        device type (fridges, rtmds, or dtrs).
+        key style of the record: appliance (A*) or logger (L*).
         '''
         power_type = validate_power_type(
             device_dict.get('power_type'), device_label(device_dict)
@@ -95,7 +95,10 @@ class Device:
         else:
             raise ValueError("Unknown device type: Unable to resolve keys.")
 
-fridges = [
+#: The full WHO PQS E003 prequalified appliance catalogue. Not the packaged
+#: default -- it ships as the named builtin `Catalogs.builtin('pqs-e003-full')`
+#: for anyone who wants to simulate the whole prequalified range.
+pqs_e003_fridges = [
     {"APQS": "E003/002", "type": "Vaccine/Waterpacks freezer", "AMFR": "Qingdao Haier Biomedical Co., Ltd", "AMOD": "HBD 116", "power_type": "mains"},
     {"APQS": "E003/003", "type": "Vaccine/Waterpacks freezer", "AMFR": "Qingdao Haier Biomedical Co., Ltd", "AMOD": "HBD 286", "power_type": "mains"},
     {"APQS": "E003/007", "type": "Icelined refrigerator", "AMFR": "Vestfrost Solutions", "AMOD": "MK 304", "power_type": "mains"},
@@ -194,17 +197,9 @@ fridges = [
     {"APQS": "E003/137", "type": "Icelined Refrigerator", "AMFR": "Godrej & Boyce MFG. Co. Ltd.", "AMOD": "GHR 90 AC", "power_type": "mains"}
 ]
 
-dtrs = [
-    {"LPQS":"E006/020", "type": "30 day electronic temperature logger","LMFR":"Berlinger & Co. AG", "LMOD":"Fridge-tag 2"},
-    {"LPQS":"E006/040", "type": "30-day electronic temperature logger","LMFR":"Berlinger & Co. AG", "LMOD":"Fridge-tag 2 E"},
-    {"LPQS":"E006/093", "type": "30-Day Electronic Temperature logger","LMFR":"Berlinger & Co. AG", "LMOD":"Fridge-tag 2L"},
-    {"LPQS":"E006/069", "type": "User Programable data logger","LMFR":"Parsyl Inc.", "LMOD":"Trek Pro"},
-    {"LPQS":"E006/042", "type": "30-day electronic temperature logger","LMFR":"Qingdao Haier Biomedical Co., Ltd", "LMOD":"HETL-01"},
-    {"LPQS":"E006/081", "type": "30 Day Temperature Logger","LMFR":"G-Tek Corporation Private Limited", "LMOD":"LM-XS Pro E006"},
-    {"LPQS":"E006/041", "type": "Remote Temperature Monitoring Device","LMFR":"Berlinger & Co. AG", "LMOD":"Fridge-tag 3 without SIM card"}
-]
-
-rtmds = [
+#: The full WHO PQS E006 prequalified remote temperature monitoring device
+#: catalogue. Ships as part of `Catalogs.builtin('pqs-e003-full')`.
+pqs_e006_rtmds = [
     {"LPQS":"E006/019", "type": "Remote Temperature Monitoring Device","LMFR":"Berlinger & Co. AG", "LMOD":"SmartLine"},
     {"LPQS":"E006/087", "type": "Remote Temperature Monitoring Device","LMFR":"Berlinger & Co. AG", "LMOD":"SmartMonitor SITE L"},
     {"LPQS":"E006/036", "type": "Remote Temperature Monitoring Device","LMFR":"Beyond Wireless Technology Ltd", "LMOD":"ICE3 - Model BC141"},
@@ -218,6 +213,37 @@ rtmds = [
     {"LPQS":"E006/075", "type": "Remote Temperature Monitoring Device","LMFR":"Qingdao Haier Biomedical Co., Ltd", "LMOD":"U-COOL-LORA"},
     {"LPQS":"E006/078", "type": "Remote Temperature Monitoring Device","LMFR":"Qingdao Haier Biomedical Co., Ltd", "LMOD":"U-COOL Pro"},
     {"LPQS":"E006/080", "type": "Remote Temperature Monitoring Device","LMFR":"Parsyl Inc.", "LMOD":"Parsyl Trek Pro & Gateway"}
+]
+
+#: THE PACKAGED DEFAULT APPLIANCE CATALOG: a small sample, not an endorsement.
+#: Six appliances covering the archetypes the physics actually distinguishes --
+#: mains ice-lined, mains freezer, solar direct drive refrigerator, solar direct
+#: drive combined refrigerator/freezer -- so a bare `MonitoringDeviceConfig()`
+#: exercises every power and thermal model rather than one of them ninety-six
+#: times. Bring your own catalog with `Catalogs.from_dir()` or
+#: `CCESIM_CATALOG_DIR`; for the whole prequalified range use
+#: `Catalogs.builtin('pqs-e003-full')`.
+#:
+#: Every row states `power_type` explicitly. E003/124 is here on purpose: it is
+#: a solar direct drive whose type string says only 'Vaccine Refrigerator /
+#: Ice-pack Freezer', so it is the row that shows why the free-text sniff is a
+#: fallback and not the answer.
+fridges = [
+    {"APQS": "E003/007", "type": "Icelined refrigerator", "AMFR": "Vestfrost Solutions", "AMOD": "MK 304", "power_type": "mains"},
+    {"APQS": "E003/044", "type": "Icelined refrigerator", "AMFR": "Zero Appliances Ltd", "AMOD": "ZLF 150 AC (SureChill ®)", "power_type": "mains"},
+    {"APQS": "E003/024", "type": "Vaccine/Waterpacks freezer", "AMFR": "Vestfrost Solutions", "AMOD": "MF 114", "power_type": "mains"},
+    {"APQS": "E003/030", "type": "Solar direct drive refrigerator", "AMFR": "B Medical Systems Sarl", "AMOD": "TCW 3000 SDD", "power_type": "solar"},
+    {"APQS": "E003/048", "type": "Solar Direct Drive Combined Refrigerator/Freezer", "AMFR": "Dulas Ltd", "AMOD": "VC150SDD", "power_type": "solar"},
+    {"APQS": "E003/124", "type": "Vaccine Refrigerator / Ice-pack Freezer", "AMFR": "B Medical Systems Sarl", "AMOD": "TCW120SDD", "power_type": "solar"}
+]
+
+#: THE PACKAGED DEFAULT LOGGER CATALOG: three RTMDs from three manufacturers,
+#: enough to exercise device metadata without shipping the whole E006 list. See
+#: `pqs_e006_rtmds` / `Catalogs.builtin('pqs-e003-full')` for that.
+rtmds = [
+    {"LPQS":"E006/019", "type": "Remote Temperature Monitoring Device","LMFR":"Berlinger & Co. AG", "LMOD":"SmartLine"},
+    {"LPQS":"E006/039", "type": "Remote Temperature Monitoring Device","LMFR":"Nexleaf Analytics", "LMOD":"ColdTrace 5"},
+    {"LPQS":"E006/060", "type": "Remote Temperature Monitoring Device","LMFR":"Qingdao Haier Biomedical Co., Ltd", "LMOD":"Haier U-Cool"}
 ]
 
 class DeviceGroup():

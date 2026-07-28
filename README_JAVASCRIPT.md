@@ -143,8 +143,8 @@ config.fault = new FaultConfig({
 | PRNG | Mersenne Twister (`random.Random`) | ARC4 (`seedrandom`) |
 | Function naming | `snake_case` (`default_config`, `few_but_long`) | `camelCase` (`defaultConfig`, `fewButLong`) |
 | Config field naming | `snake_case` | `snake_case` — deliberately kept, see below |
-| Facility catalog | 40+ Nigerian facilities | Not included — pass metadata via config |
-| Device catalog | 90+ fridge models, 10+ RTMDs | Not included — pass metadata via config |
+| Facility catalog | 7 illustrative facilities (27°N–26°S), pluggable | Not included — pass metadata via config |
+| Device catalog | 6 fridge models, 3 RTMDs, pluggable | Not included — pass metadata via config |
 | Load testing | Locust integration | Not included |
 | Notebooks | Jupyter examples with plots | Not included |
 
