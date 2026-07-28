@@ -104,7 +104,7 @@ class TestMainsPowerModelOutage:
     def test_fault_override_forces_outage_readings(self):
         # A POWER_OUTAGE fault (power_available_override=False) forces the mains
         # supply off for the interval even with no stochastic outage active:
-        # SVA/ACSV/ACCD must all reflect the outage (ccesim-fuq).
+        # SVA/ACSV/ACCD must all reflect the outage.
         cfg = _mains_config(outage_probability_per_hour=0.0)
         model = MainsPowerModel(cfg, random.Random(42))
         state = PowerState()
@@ -264,7 +264,7 @@ class TestSolarBatterySOC:
         assert set(readings.keys()) == {"DCSV", "DCCD", "BLOG", "BEMD"}
 
     def test_dccd_rounded_to_one_decimal(self):
-        # DCCD Annex Data Format is '00.0' -> 1 decimal place (ccesim-l0s).
+        # DCCD Annex Data Format is '00.0' -> 1 decimal place.
         # Runtime 730s of 900s -> raw 6.0 * 730/900 = 4.8667, which rounds to
         # 4.9 at 1 dp but 4.87 at 2 dp, so this distinguishes the two.
         cfg = _solar_config(solar_compressor_current_a=6.0)
@@ -275,7 +275,7 @@ class TestSolarBatterySOC:
 
     def test_fault_override_forces_no_solar_power(self):
         # A POWER_OUTAGE fault forces power unavailable regardless of solar
-        # voltage: no DC compressor draw, battery drains (ccesim-fuq mirror).
+        # voltage: no DC compressor draw, battery drains (mirrors the mains case).
         model = SolarPowerModel(_solar_config(), random.Random(42))
         state = PowerState(battery_soc=0.8)
         state, readings = model.simulate_interval(

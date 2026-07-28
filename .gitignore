@@ -166,12 +166,19 @@ scratchpad.ipynb
 # Claude stuff
 .claude
 AGENTS.md
-.beads
 
 # MacOS
 .DS_Store
 
 # Beads / Dolt files (added by bd init)
+#
+# NOTE: `.beads/` is deliberately NOT ignored wholesale. Beads is git-native --
+# `.beads/issues.jsonl` is the issue database and is meant to be committed, so
+# issue IDs referenced anywhere resolve for anyone who clones the repo.
+# `.beads/.gitignore` scopes this precisely: it keeps the Dolt database, the
+# federation credential key, per-machine sync state, and runtime logs out of
+# git. Do not re-add a blanket `.beads` entry here -- it would stop git
+# descending into the directory, and that nested .gitignore would never be read.
 .dolt/
 *.db
 .beads-credential-key

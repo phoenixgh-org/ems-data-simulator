@@ -1,4 +1,4 @@
-"""Tests for the DetectedIssue episode derivation (ccesim-jby.3 decision prototype).
+"""Tests for the DetectedIssue episode derivation (decision prototype).
 
 Verifies that the per-record alarm stream collapses into one DetectedIssue per
 contiguous episode (per code), and that the result is structurally valid FHIR.

@@ -1,4 +1,4 @@
-"""Tests for the Phase 2 FHIR transform (ccesim-jby.4).
+"""Tests for the FHIR transform.
 
 Covers the cce-interop EMS -> FHIR R4 Bundle reference transformer:
 ABST normalization, structural validity against FHIR R4B models, UCUM units,

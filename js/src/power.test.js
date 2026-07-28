@@ -113,7 +113,7 @@ describe("MainsPowerModel outage behavior", () => {
 
   it("fault override forces outage readings without a stochastic outage", () => {
     // A POWER_OUTAGE fault (power_available_override=false) forces the mains
-    // supply off even with no stochastic outage active (ccesim-fuq).
+    // supply off even with no stochastic outage active.
     const cfg = mainsConfig({ outage_probability_per_hour: 0.0 });
     const model = new MainsPowerModel(cfg, new SeededRandom(42));
     const [state, readings] = model.simulate_interval(
@@ -316,7 +316,7 @@ describe("SolarPowerModel battery SOC", () => {
   });
 
   it("DCCD rounded to one decimal place", () => {
-    // DCCD Annex Data Format is '00.0' -> 1 decimal place (ccesim-l0s).
+    // DCCD Annex Data Format is '00.0' -> 1 decimal place.
     // Runtime 730s of 900s -> raw 6.0 * 730/900 = 4.8667, which rounds to 4.9
     // at 1 dp but 4.87 at 2 dp, so this distinguishes the two.
     const cfg = solarConfig({ solar_compressor_current_a: 6.0 });
@@ -332,7 +332,7 @@ describe("SolarPowerModel battery SOC", () => {
 
   it("fault override forces no solar power", () => {
     // A POWER_OUTAGE fault forces power unavailable regardless of solar
-    // voltage: no DC compressor draw, battery drains (ccesim-fuq mirror).
+    // voltage: no DC compressor draw, battery drains (mirrors the mains case).
     const model = new SolarPowerModel(solarConfig(), new SeededRandom(42));
     const [state, readings] = model.simulate_interval(
       new PowerState({ battery_soc: 0.8 }),

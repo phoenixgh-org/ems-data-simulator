@@ -402,7 +402,7 @@ class TestHoldoverAutonomy:
     +2..+8 C if power were cut (cce-interop PQS-DS01 HOLD: number|null, days,
     0..999.9, tenths).  It is derived from the remaining icebank reserve and
     the ambient heat load, reported continuously -- not a seconds-since-power-
-    loss stopwatch (see ccesim-l5u)."""
+    loss stopwatch."""
 
     @staticmethod
     def _icebank_config():

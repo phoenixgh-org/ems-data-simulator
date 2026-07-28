@@ -719,7 +719,7 @@ describe("Multi-code ALRM", () => {
 
 // HOLD is a thermal-reserve estimate emitted by the thermal model, NOT a
 // power-outage stopwatch in the alarm layer. deriveAlarms must not emit
-// HOLD regardless of power availability (see ccesim-l5u).
+// HOLD regardless of power availability.
 describe("HOLD not in alarms", () => {
   it("HOLD absent when power available", () => {
     const ag = new AlarmGenerator(makeRng(1));

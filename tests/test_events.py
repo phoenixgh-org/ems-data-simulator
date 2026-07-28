@@ -661,7 +661,7 @@ class TestMultiCodeAlarm:
 class TestHoldNotInAlarms:
     """HOLD is a thermal-reserve estimate emitted by the thermal model,
     NOT a power-outage stopwatch in the alarm layer.  derive_alarms must
-    not emit HOLD regardless of power availability (see ccesim-l5u)."""
+    not emit HOLD regardless of power availability."""
 
     def test_hold_absent_when_power_available(self):
         ag = AlarmGenerator(_make_rng(seed=1))

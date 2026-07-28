@@ -427,7 +427,7 @@ describe("Behavioral equivalence", () => {
     it("HOLD is a days-scale holdover estimate, not a seconds counter", () => {
       // HOLD is holdover autonomy in DAYS (cce-interop range 0..999.9),
       // derived from the icebank reserve -- reported continuously, NOT a
-      // seconds-since-power-loss stopwatch (see ccesim-l5u).
+      // seconds-since-power-loss stopwatch.
       const holds = jsResult.records.map((r) => r.HOLD);
       expect(holds.length).toBeGreaterThan(0);
       for (const h of holds) {
