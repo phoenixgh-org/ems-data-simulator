@@ -8,8 +8,8 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import List, Optional
 
-from utils.simulator.config import EventConfig, FaultConfig, FaultType
-from utils.simulator.thermal import DoorEvent
+from ccesim.simulator.config import EventConfig, FaultConfig, FaultType
+from ccesim.simulator.thermal import DoorEvent
 
 
 @dataclass

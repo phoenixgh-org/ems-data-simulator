@@ -1,4 +1,4 @@
-"""Unit tests for utils.simulator.thermal module."""
+"""Unit tests for ccesim.simulator.thermal module."""
 
 import math
 import random
@@ -6,8 +6,8 @@ import datetime as dt
 
 import pytest
 
-from utils.simulator.config import ThermalConfig, AmbientConfig
-from utils.simulator.thermal import (
+from ccesim.simulator.config import ThermalConfig, AmbientConfig
+from ccesim.simulator.thermal import (
     AmbientModel,
     DoorEvent,
     ThermalModel,

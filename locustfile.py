@@ -7,9 +7,9 @@ from random import uniform
 from locust import HttpUser, task, constant_pacing, events
 from os import environ
 from dotenv import load_dotenv
-from utils.device import MonitoringDeviceConfig, BaseRtmDevice
-from utils.schemas import TransferMetadata, EmsTransfer, RtmdTransfer
-from utils.generator import transfer_metadata
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice
+from ccesim.schemas import TransferMetadata, EmsTransfer, RtmdTransfer
+from ccesim.generator import transfer_metadata
 
 load_dotenv()
 

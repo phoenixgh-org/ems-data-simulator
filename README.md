@@ -26,16 +26,19 @@ Available in two implementations:
 
 ### Python
 
+Not yet on PyPI; install from source. The package is named `ccesim`.
+
 ```bash
-git clone <repository-url> && cd ems-data-simulator
-pipenv install --dev      # or: pip install "pydantic>=2.4,<3" python-dateutil pytz
+git clone https://github.com/phoenixgh-org/ems-data-simulator.git
+cd ems-data-simulator
+pip install -e .          # or: pipenv sync --dev, for the full dev environment
 ```
 
 Generate one day of 15-minute records from a mains-powered fridge in a tropical climate:
 
 ```python
 import datetime as dt
-from utils.simulator import SimulatedRecordSet, default_config
+from ccesim.simulator import SimulatedRecordSet, default_config
 
 config = default_config(power_type="mains", latitude=12.0)
 rs = SimulatedRecordSet.generate(
@@ -49,7 +52,7 @@ for r in rs.records[:3]:
 To emit a complete, schema-conformant transmission instead of raw records, use the device layer:
 
 ```python
-from utils.device import MonitoringDeviceConfig, BaseRtmDevice
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice
 
 device = BaseRtmDevice(MonitoringDeviceConfig(type="ems", upload_interval=3600, sample_interval=900))
 report = device.create_report(report_time=dt.datetime(2024, 6, 15, 12, 0))

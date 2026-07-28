@@ -1,11 +1,11 @@
 import datetime as dt
 import random
-from utils.devicegroups import DeviceGroup, rtmds, fridges
-from utils.facilities import Facility, random_facility
-from utils.generator import random_serial, random_amid
-from utils.simulator import SimulatedRecordSet, SimulatorState, default_config
+from ccesim.devicegroups import DeviceGroup, rtmds, fridges
+from ccesim.facilities import Facility, random_facility
+from ccesim.generator import random_serial, random_amid
+from ccesim.simulator import SimulatedRecordSet, SimulatorState, default_config
 import logging
-from utils.schemas import (
+from ccesim.schemas import (
     RtmdReport,
     EmsReport,
     TransferMetadata

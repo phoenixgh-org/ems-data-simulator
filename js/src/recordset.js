@@ -2,7 +2,7 @@
  * SimulatedRecordSet: the integration layer that orchestrates thermal, power,
  * and event models into schema-compatible record batches.
  *
- * Port of utils/simulator/recordset.py
+ * Port of ccesim/simulator/recordset.py
  */
 
 import { SeededRandom } from "./random.js";

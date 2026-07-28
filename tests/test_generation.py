@@ -1,7 +1,7 @@
 import pytest
 import datetime as dt
-from utils.device import MonitoringDeviceConfig, BaseRtmDevice
-from utils.schemas import RtmdReport, EmsReport
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice
+from ccesim.schemas import RtmdReport, EmsReport
 
 
 @pytest.fixture

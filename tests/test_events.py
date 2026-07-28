@@ -1,18 +1,18 @@
-"""Unit tests for utils.simulator.events module."""
+"""Unit tests for ccesim.simulator.events module."""
 
 import random
 import datetime as dt
 
 import pytest
 
-from utils.simulator.config import EventConfig, FaultConfig, FaultType
-from utils.simulator.events import (
+from ccesim.simulator.config import EventConfig, FaultConfig, FaultType
+from ccesim.simulator.events import (
     DoorEventGenerator,
     FaultEffects,
     FaultInjector,
     AlarmGenerator,
 )
-from utils.simulator.thermal import DoorEvent
+from ccesim.simulator.thermal import DoorEvent
 
 
 # ---------------------------------------------------------------------------
@@ -785,7 +785,7 @@ class TestEventConfigPresets:
 
     def test_presets_compose_with_fault_config(self):
         """Presets work as drop-in EventConfig in a full SimulationConfig."""
-        from utils.simulator.config import SimulationConfig, FaultConfig, FaultType
+        from ccesim.simulator.config import SimulationConfig, FaultConfig, FaultType
         config = SimulationConfig(
             events=EventConfig.few_but_long(),
             fault=FaultConfig(

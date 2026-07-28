@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from utils.schemas import (
+from ccesim.schemas import (
     TransferMetadata,
     RtmdRecord,
     RtmdReport,

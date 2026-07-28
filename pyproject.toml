@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ccesim"
+version = "0.1.0"
+description = "Physics-based synthetic data generator for cold chain equipment (CCE) monitoring systems"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [{ name = "Phoenix Global Health" }]
+keywords = [
+    "cold-chain",
+    "vaccine",
+    "refrigeration",
+    "who-pqs",
+    "e006",
+    "cce-interop",
+    "ems",
+    "rtmd",
+    "synthetic-data",
+    "simulation",
+    "global-health",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+
+# The simulation engine is pure standard library. Pydantic is needed only by
+# the schema layer (ccesim/schemas.py), which is what makes the output
+# conformant to cce-interop, so it is not optional in practice.
+dependencies = [
+    "pydantic>=2.4,<3",
+    "python-dateutil>=2.8",
+    "pytz>=2023.3",
+    "tzdata>=2023.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/phoenixgh-org/ems-data-simulator"
+Repository = "https://github.com/phoenixgh-org/ems-data-simulator"
+Specification = "https://docs.2to8.cc/cce-data-interop/overview/"
+
+[tool.setuptools.packages.find]
+include = ["ccesim*"]

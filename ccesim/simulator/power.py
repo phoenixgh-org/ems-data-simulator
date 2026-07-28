@@ -11,7 +11,7 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-from utils.simulator.config import PowerConfig
+from ccesim.simulator.config import PowerConfig
 
 
 @dataclass

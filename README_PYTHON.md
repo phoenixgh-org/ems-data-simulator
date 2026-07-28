@@ -4,26 +4,31 @@ The reference Python implementation of the CCE thermal simulator. See [README.md
 
 ## Dependencies
 
-Runtime: **Pydantic 2.x** (schema validation), plus `python-dateutil` and `pytz`. The simulation engine itself is pure Python standard library — only the schema layer (`utils/schemas.py`) needs Pydantic.
+Runtime: **Pydantic 2.x** (schema validation), plus `python-dateutil` and `pytz`. The simulation engine itself is pure Python standard library — only the schema layer (`ccesim/schemas.py`) needs Pydantic.
 
 Development: pytest, `gibberish` (test fixtures), `fhir.resources` (the FHIR transform tests), numpy, pandas, matplotlib, locust (see `Pipfile`).
 
 ## Install
 
-Requires Python 3.12.
+Requires Python 3.12. The distribution and the import package are both named
+`ccesim`. It is not yet published to PyPI, so install from a clone.
+
+To use the simulator as a library:
 
 ```bash
-pipenv install          # runtime dependencies only
-pipenv sync --dev       # everything, exactly as pinned in Pipfile.lock
+pip install -e .        # editable; drop -e for a normal install
+```
+
+To work on it, use pipenv — `Pipfile.lock` pins every dependency, and this is
+what CI runs:
+
+```bash
+pipenv sync --dev       # installs the project editable, plus the dev stack
 pipenv shell
 ```
 
-Or without pipenv:
-
-```bash
-pip install "pydantic>=2.4,<3" python-dateutil pytz
-pip install pytest gibberish "fhir.resources>=7.0.0,<8" locust python-dotenv matplotlib numpy pandas   # development extras
-```
+Runtime dependencies are declared once, in `pyproject.toml`. `Pipfile` adds only
+the development ones on top, so the two cannot drift.
 
 Verify:
 
@@ -39,7 +44,7 @@ Generate records directly from the simulation engine:
 
 ```python
 import datetime as dt
-from utils.simulator import SimulatedRecordSet, default_config
+from ccesim.simulator import SimulatedRecordSet, default_config
 
 config = default_config(power_type="mains", latitude=12.0)
 start = dt.datetime(2024, 6, 15, 0, 0, 0)
@@ -60,7 +65,7 @@ rtmd_records = rs.to_rtmd()     # List[RtmdRecord]
 The device layer adds facility metadata, serial numbers, and schema-validated reports:
 
 ```python
-from utils.device import MonitoringDeviceConfig, BaseRtmDevice
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice
 
 config = MonitoringDeviceConfig(
     type='ems',                # 'ems' or 'rtmd'
@@ -78,7 +83,7 @@ print(len(report.records))  # 3600/900 = 4
 ## Injecting anomalies
 
 ```python
-from utils.simulator.config import FaultType, default_config
+from ccesim.simulator.config import FaultType, default_config
 
 config = default_config("mains", latitude=12.0)
 
@@ -94,7 +99,7 @@ config.fault.fault_duration_s = 0                # permanent
 config.fault.refrigerant_leak_rate = 0.02        # 2% capacity loss per hour
 
 # Combining door presets with faults
-from utils.simulator.config import EventConfig, FaultConfig
+from ccesim.simulator.config import EventConfig, FaultConfig
 
 config.events = EventConfig.few_but_long()
 config.fault = FaultConfig(
@@ -125,7 +130,7 @@ State (TVC, compressor status, logger battery SOC, RNG) carries over between cal
 ### Small mains-powered chest fridge
 
 ```python
-from utils.simulator.config import SimulationConfig, ThermalConfig, AmbientConfig, PowerConfig, EventConfig
+from ccesim.simulator.config import SimulationConfig, ThermalConfig, AmbientConfig, PowerConfig, EventConfig
 
 config = SimulationConfig(
     thermal=ThermalConfig(
@@ -236,14 +241,14 @@ TARGET_HOST=https://ingest.example.org INGEST_PATH=/v1/cce \
 
 To support a new power source (e.g., generator-backed, hybrid solar-mains):
 
-1. Create a new model class in `utils/simulator/power.py` implementing `simulate_interval()` and `is_power_available()`
+1. Create a new model class in `ccesim/simulator/power.py` implementing `simulate_interval()` and `is_power_available()`
 2. Add a branch in `SimulatedRecordSet.generate()` to instantiate it
 3. Add any new output fields to the `to_ems()` / `to_rtmd()` conversion methods
 
 ## Project structure
 
 ```
-utils/
+ccesim/
 ├── simulator/
 │   ├── __init__.py          Public API exports
 │   ├── config.py            All configuration dataclasses

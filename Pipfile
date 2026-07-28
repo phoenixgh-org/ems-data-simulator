@@ -4,13 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-# Runtime dependencies of the simulator itself. The simulation engine is pure
-# standard library; pydantic is used only by the schema layer (utils/schemas.py).
-pydantic = '2.4.2'
-pydantic_core = '2.10.1'
-python-dateutil = '2.8.2'
-pytz = '2023.3.post1'
-tzdata = '2023.3'
+# The project itself, installed editable. Runtime dependencies are declared
+# once, in pyproject.toml [project.dependencies]; listing them again here
+# would let the two drift. Pipfile.lock still pins the resolved versions, so
+# CI stays reproducible.
+ccesim = { path = ".", editable = true }
 
 [dev-packages]
 # Tests

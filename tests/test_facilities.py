@@ -1,5 +1,5 @@
 import pytest
-from utils.facilities import random_facility
+from ccesim.facilities import random_facility
 
 @pytest.fixture
 def facility():

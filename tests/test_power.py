@@ -1,4 +1,4 @@
-"""Unit tests for utils.simulator.power module."""
+"""Unit tests for ccesim.simulator.power module."""
 
 import datetime as dt
 import math
@@ -6,8 +6,8 @@ import random
 
 import pytest
 
-from utils.simulator.config import PowerConfig
-from utils.simulator.power import MainsPowerModel, SolarPowerModel, PowerState
+from ccesim.simulator.config import PowerConfig
+from ccesim.simulator.power import MainsPowerModel, SolarPowerModel, PowerState
 
 
 # ---------------------------------------------------------------------------

@@ -11,7 +11,7 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from utils.simulator.config import ThermalConfig, AmbientConfig
+from ccesim.simulator.config import ThermalConfig, AmbientConfig
 
 
 @dataclass

@@ -4,9 +4,9 @@ import datetime as dt
 
 import pytest
 
-from utils.simulator.config import default_config, SimulationConfig, PowerConfig
-from utils.simulator.recordset import SimulatedRecordSet, SimulatorState
-from utils.schemas import RtmdRecord, EmsRecordMains, EmsRecordSolar
+from ccesim.simulator.config import default_config, SimulationConfig, PowerConfig
+from ccesim.simulator.recordset import SimulatedRecordSet, SimulatorState
+from ccesim.schemas import RtmdRecord, EmsRecordMains, EmsRecordSolar
 
 
 FIXED_START = dt.datetime(2025, 6, 1, 12, 0, 0)

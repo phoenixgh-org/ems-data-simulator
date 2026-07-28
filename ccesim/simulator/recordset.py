@@ -8,11 +8,11 @@ import datetime as dt
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from utils.simulator.config import SimulationConfig
-from utils.simulator.thermal import ThermalModel, ThermalState, AmbientModel, DoorEvent
-from utils.simulator.power import MainsPowerModel, SolarPowerModel, PowerState
-from utils.simulator.events import DoorEventGenerator, FaultInjector, AlarmGenerator
-from utils.schemas import RtmdRecord, EmsRecordMains, EmsRecordSolar
+from ccesim.simulator.config import SimulationConfig
+from ccesim.simulator.thermal import ThermalModel, ThermalState, AmbientModel, DoorEvent
+from ccesim.simulator.power import MainsPowerModel, SolarPowerModel, PowerState
+from ccesim.simulator.events import DoorEventGenerator, FaultInjector, AlarmGenerator
+from ccesim.schemas import RtmdRecord, EmsRecordMains, EmsRecordSolar
 
 
 @dataclass

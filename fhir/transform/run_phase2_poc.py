@@ -20,9 +20,9 @@ sys.path.insert(0, str(REPO))
 # collide with the installed `fhir.resources` namespace package).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from utils.device import MonitoringDeviceConfig, BaseRtmDevice  # noqa: E402
-from utils.generator import transfer_metadata  # noqa: E402
-from utils.simulator.config import FaultType  # noqa: E402
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice  # noqa: E402
+from ccesim.generator import transfer_metadata  # noqa: E402
+from ccesim.simulator.config import FaultType  # noqa: E402
 from cce_to_fhir import transform  # noqa: E402
 
 # Validate against R4B models (the closest pure-Python release to the IG's R4

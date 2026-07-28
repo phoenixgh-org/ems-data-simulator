@@ -18,9 +18,9 @@ sys.path.insert(0, str(REPO / "fhir" / "transform"))
 
 from cce_to_fhir import transform, abst_to_instant, UNITS, UCUM  # noqa: E402
 
-from utils.device import MonitoringDeviceConfig, BaseRtmDevice  # noqa: E402
-from utils.generator import transfer_metadata  # noqa: E402
-from utils.simulator.config import FaultType  # noqa: E402
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice  # noqa: E402
+from ccesim.generator import transfer_metadata  # noqa: E402
+from ccesim.simulator.config import FaultType  # noqa: E402
 
 fhir_r4b = pytest.importorskip("fhir.resources.R4B.bundle")
 from fhir.resources.R4B.bundle import Bundle  # noqa: E402

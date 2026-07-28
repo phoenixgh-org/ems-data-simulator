@@ -1,5 +1,5 @@
 /**
- * Device module — slimmed-down port of utils/device.py.
+ * Device module — slimmed-down port of ccesim/device.py.
  *
  * No facility/device catalogs: the game provides all metadata via config.
  */
@@ -9,7 +9,7 @@ import { SimulationConfig, defaultConfig } from "./config.js";
 import { RtmdReport, EmsReport } from "./schemas.js";
 
 // ---------------------------------------------------------------------------
-// Generator utilities (from utils/generator.py)
+// Generator utilities (from ccesim/generator.py)
 // ---------------------------------------------------------------------------
 
 /**

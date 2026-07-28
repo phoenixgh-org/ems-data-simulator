@@ -13,15 +13,15 @@ import os
 import datetime as dt
 from pathlib import Path
 
-# Add project root to path so we can import utils
+# Add project root to path so we can import ccesim
 project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from utils.simulator.config import (
+from ccesim.simulator.config import (
     SimulationConfig, ThermalConfig, AmbientConfig, PowerConfig,
     EventConfig, FaultConfig, FaultType, default_config,
 )
-from utils.simulator.recordset import SimulatedRecordSet
+from ccesim.simulator.recordset import SimulatedRecordSet
 
 FIXTURES_DIR = Path(__file__).resolve().parent
 SEED = 42

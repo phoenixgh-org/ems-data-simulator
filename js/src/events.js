@@ -1,7 +1,7 @@
 /**
  * Event generators for door openings, fault injection, and alarm derivation.
  *
- * Port of utils/simulator/events.py
+ * Port of ccesim/simulator/events.py
  */
 
 import { FaultType } from "./config.js";
