@@ -25,8 +25,13 @@ jobs:
         with:
           python-version: '3.12'   # Pipfile [requires]
 
+      # Pinned deliberately. Pipfile.lock stores a hash of the Pipfile, and how
+      # that hash is computed changed between pipenv releases: the lock in this
+      # repo verifies under 2024.0.1 and is reported out-of-date by 2026.6.2
+      # even with no edit to the Pipfile at all. Bump this pin and re-run
+      # `pipenv lock` together, never separately.
       - name: Install pipenv
-        run: pip install pipenv
+        run: pip install "pipenv==2024.0.1"
 
       # Fails if Pipfile was edited without re-running `pipenv lock`.
       - name: Check Pipfile.lock is in sync with Pipfile
@@ -71,8 +76,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Kept in step with the pin in the python-tests job above.
       - name: Install pipenv
-        run: pip install pipenv
+        run: pip install "pipenv==2024.0.1"
 
       - name: Install dependencies
         run: pipenv sync --dev
