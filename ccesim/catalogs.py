@@ -37,6 +37,14 @@ user keeps their own join columns.
 VALIDATION IS LOUD AND HAPPENS AT LOAD. A facility with no latitude must fail
 here, naming the file and the row, rather than reaching the thermal model as a
 None and producing silent nonsense.
+
+A CATALOG MAY CARRY ITS PROVENANCE. A `manifest.json` beside the catalog files
+records where each catalog came from -- source, vintage, licence, url,
+retrieved -- and is exposed as `Catalogs.manifest`. It is optional: a catalog
+without one loads exactly as before, silently, because most third-party
+catalogs will not have one. The packaged catalogs carry theirs here in code,
+since they are literals rather than files. See `MANIFEST_FILENAME` below for
+the shape.
 '''
 
 import csv
@@ -68,6 +76,29 @@ CATALOG_SUFFIXES = ('.json', '.csv')
 #: was passed explicitly. This is what makes the feature zero-code: it works
 #: for `locustfile.py`, the notebook and any downstream script unchanged.
 CATALOG_DIR_ENV = 'CCESIM_CATALOG_DIR'
+
+#: Optional provenance file, read by `from_dir()` from beside the catalog
+#: files. A JSON object keyed by catalog kind, each entry free-form:
+#:
+#:     {
+#:       "facilities": {
+#:         "source": "Kenya Master Health Facility List",
+#:         "vintage": "2025 Q1",
+#:         "licence": "CC BY 4.0",
+#:         "url": "https://example.gov/mfl",
+#:         "retrieved": "2025-03-14"
+#:       }
+#:     }
+#:
+#: Per kind rather than per directory because provenance genuinely differs
+#: between them -- a country brings its own facility list but keeps the
+#: packaged WHO PQS equipment catalogs.
+MANIFEST_FILENAME = 'manifest.json'
+
+#: The provenance fields this project uses. A CONVENTION, NOT A SCHEMA: the
+#: loader neither requires these nor rejects others, and never interprets a
+#: value. A licence here is a string a human reads, not a controlled term.
+MANIFEST_FIELDS = ('source', 'vintage', 'licence', 'url', 'retrieved')
 
 
 # ---------------------------------------------------------------------------
@@ -371,6 +402,53 @@ def _read_path(path, kind):
 
 
 # ---------------------------------------------------------------------------
+# Provenance manifests
+# ---------------------------------------------------------------------------
+
+def _validated_manifest(manifest, location):
+    '''
+    Check a manifest's SHAPE -- keyed by catalog kind, each entry an object --
+    and copy it. The fields inside an entry are never inspected: they are for
+    a human, and a country that wants to record its own extra terms should be
+    able to.
+    '''
+    if not isinstance(manifest, dict):
+        raise TypeError(
+            f"{location}: manifest must be an object keyed by catalog kind "
+            f"({', '.join(CATALOG_KINDS)}), got {type(manifest).__name__}"
+        )
+    validated = {}
+    for kind, entry in manifest.items():
+        if kind not in CATALOG_KINDS:
+            raise ValueError(
+                f"{location}: {kind!r} is not a catalog kind; a manifest is "
+                f"keyed by {', '.join(CATALOG_KINDS)}, and each of those holds "
+                f"the provenance fields ({', '.join(MANIFEST_FIELDS)})"
+            )
+        if not isinstance(entry, dict):
+            raise ValueError(
+                f"{location}: {kind!r} provenance must be an object of fields, "
+                f"got {type(entry).__name__}"
+            )
+        validated[kind] = dict(entry)
+    return validated
+
+
+def _read_manifest(path):
+    with open(path, encoding='utf-8') as handle:
+        try:
+            payload = json.load(handle)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{path}: not valid JSON: {exc}") from None
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"{path}: expected a JSON object keyed by catalog kind, got "
+            f"{type(payload).__name__}"
+        )
+    return _validated_manifest(payload, str(path))
+
+
+# ---------------------------------------------------------------------------
 # Catalogs
 # ---------------------------------------------------------------------------
 
@@ -396,6 +474,80 @@ _BUILTIN_RECORDS = {
 
 #: Named packaged catalogs resolvable through `Catalogs.builtin()`.
 BUILTIN_CATALOGS = tuple(_BUILTIN_RECORDS)
+
+#: Provenance for the packaged catalogs. They are Python literals rather than
+#: files, so their manifest lives here instead of in a `manifest.json`.
+#:
+#: THE DEFAULT FACILITIES ARE SYNTHETIC and their provenance says so. The real
+#: registry records are 'nigeria-sokoto' and nowhere else -- describing the
+#: sample as NHFR/GRID3 data would restore exactly the confusion that shrinking
+#: the default set removed.
+#:
+#: A field whose value is not actually known is left out rather than guessed:
+#: an unverified licence string is worse than none, because a reader would act
+#: on it.
+_BUILTIN_MANIFESTS = {
+    'default': {
+        'facilities': {
+            'source': (
+                'Synthetic. Invented "Example ..." facilities placed at real, '
+                'plausible cold chain coordinates from 27N to 26S; no real '
+                'health facility is named. Recorded per record as '
+                'facility_name_source / geocoordinates_source = '
+                'SYNTHETIC_EXAMPLE.'
+            ),
+            'vintage': '2026',
+            'licence': 'MIT, as part of this package',
+            'url': 'https://github.com/phoenixgh-org/ems-data-simulator',
+        },
+        'appliances': {
+            'source': (
+                'Six appliances sampled from the WHO PQS prequalified '
+                'equipment catalogue (E003), chosen to cover the power and '
+                'thermal archetypes the simulator models'
+            ),
+            'licence': 'Public WHO catalogue',
+        },
+        'loggers': {
+            'source': (
+                'Three remote temperature monitoring devices sampled from the '
+                'WHO PQS prequalified equipment catalogue (E006)'
+            ),
+            'licence': 'Public WHO catalogue',
+        },
+    },
+    'nigeria-sokoto': {
+        'facilities': {
+            'source': (
+                'Nigeria Health Facility Registry (NHFR) for facility names, '
+                'GRID3 eHealth for coordinates; recorded per record as '
+                'facility_name_source=NHFR_2024 and '
+                'geocoordinates_source=GRID3_EHEALTH'
+            ),
+            'vintage': 'NHFR 2024',
+            'licence': (
+                'Both are public datasets; redistribution terms have not been '
+                'confirmed for this package'
+            ),
+        },
+    },
+    'pqs-e003-full': {
+        'appliances': {
+            'source': (
+                'WHO PQS prequalified equipment catalogue, E003 refrigerators '
+                'and freezers, in full'
+            ),
+            'licence': 'Public WHO catalogue',
+        },
+        'loggers': {
+            'source': (
+                'WHO PQS prequalified equipment catalogue, E006 remote '
+                'temperature monitoring devices, in full'
+            ),
+            'licence': 'Public WHO catalogue',
+        },
+    },
+}
 
 
 def _prepare(loaded, kind):
@@ -436,6 +588,37 @@ def _as_loaded(records, kind):
     return _Loaded(source, pairs)
 
 
+def _resolve_manifest(manifest, supplied):
+    '''
+    Work out the provenance of each of the three catalogs this object ends up
+    holding.
+
+    A kind that fell back to the packaged default gets the PACKAGED
+    provenance, not the caller's -- so `from_dir()` on a directory holding only
+    facilities still reports the WHO PQS origin of the appliances it did not
+    replace. A kind that has no provenance at all is simply absent from the
+    result, which is the normal case for a third-party catalog.
+    '''
+    location = 'manifest passed to Catalogs()'
+    given = _validated_manifest(manifest, location) if manifest is not None else {}
+    resolved = {}
+    for kind in CATALOG_KINDS:
+        if kind in given:
+            if supplied[kind] is None:
+                raise ValueError(
+                    f"{location}: it describes {kind!r}, but no {kind} catalog "
+                    f"was supplied, so that catalog is the packaged default "
+                    f"and its provenance is already known; supply the {kind} "
+                    f"catalog or drop the entry"
+                )
+            resolved[kind] = given[kind]
+        elif supplied[kind] is None:
+            packaged = _BUILTIN_MANIFESTS['default'].get(kind)
+            if packaged is not None:
+                resolved[kind] = dict(packaged)
+    return resolved
+
+
 class Catalogs:
     '''
     The three catalogs the simulator draws from: facilities, appliances and
@@ -446,12 +629,25 @@ class Catalogs:
     Catalogs object that exists is one every consumer can read without
     re-checking. The lists are copies -- loading never mutates the dicts handed
     in, nor the packaged literals.
+
+    `manifest` is optional provenance, keyed by catalog kind -- see
+    `MANIFEST_FILENAME`. It is read for you from a `manifest.json` by
+    `from_dir()`, and carried in code for the packaged catalogs. Whatever the
+    route, the resulting `Catalogs.manifest` describes the catalogs this object
+    actually holds, so a kind left to fall back reports the packaged origin
+    rather than the caller's.
     '''
 
-    def __init__(self, facilities=None, appliances=None, loggers=None):
+    def __init__(self, facilities=None, appliances=None, loggers=None,
+                 manifest=None):
         self.facilities = _prepare(_as_loaded(facilities, 'facilities'), 'facilities')
         self.appliances = _prepare(_as_loaded(appliances, 'appliances'), 'appliances')
         self.loggers = _prepare(_as_loaded(loggers, 'loggers'), 'loggers')
+        self.manifest = _resolve_manifest(manifest, {
+            'facilities': facilities,
+            'appliances': appliances,
+            'loggers': loggers,
+        })
 
     @classmethod
     def builtin(cls, name='default'):
@@ -463,14 +659,16 @@ class Catalogs:
             Catalogs.builtin('pqs-e003-full')   # the whole PQS equipment list
 
         A builtin only replaces the catalogs it names; the rest stay the
-        packaged default.
+        packaged default. Each carries its provenance in `.manifest`.
         '''
         if name not in BUILTIN_CATALOGS:
             raise ValueError(
                 f"Unknown builtin catalog {name!r}: expected one of "
                 f"{', '.join(repr(n) for n in BUILTIN_CATALOGS)}"
             )
-        return cls(**_BUILTIN_RECORDS[name])
+        return cls(
+            manifest=_BUILTIN_MANIFESTS.get(name), **_BUILTIN_RECORDS[name]
+        )
 
     @classmethod
     def from_dir(cls, path):
@@ -484,6 +682,9 @@ class Catalogs:
         `from_files()` already accepts it. Two files that both claim the same
         catalog -- `facilities.csv` beside `facilities.JSON`, or beside
         `Facilities.csv` -- is an error rather than a resolution by luck.
+
+        A `manifest.json` in the directory is read as the catalogs' provenance
+        and exposed as `.manifest`. It is optional and its absence is silent.
         '''
         directory = Path(path)
         if not directory.is_dir():
@@ -515,7 +716,25 @@ class Catalogs:
                     for kind in CATALOG_KINDS for suffix in CATALOG_SUFFIXES
                 )
             )
-        return cls(**found)
+        manifests = [
+            entry for entry in candidates
+            if entry.name.lower() == MANIFEST_FILENAME
+        ]
+        if len(manifests) > 1:
+            raise ValueError(
+                f"{directory}: found more than one manifest ("
+                + ', '.join(entry.name for entry in manifests)
+                + "); keep only one"
+            )
+        manifest = _read_manifest(manifests[0]) if manifests else None
+        for kind in manifest or ():
+            if kind not in found:
+                raise ValueError(
+                    f"{manifests[0]}: describes {kind!r}, but the directory "
+                    f"has no {kind} catalog file, so that catalog is the "
+                    f"packaged default; add the file or drop the entry"
+                )
+        return cls(manifest=manifest, **found)
 
     @classmethod
     def from_files(cls, facilities=None, appliances=None, loggers=None):

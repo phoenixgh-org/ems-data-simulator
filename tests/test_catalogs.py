@@ -345,6 +345,161 @@ class TestFromDir:
         assert len(catalogs.appliances) == 2
 
 
+class TestProvenanceManifest:
+    """A catalog can say where it came from; it never has to.
+
+    The manifest exists so that a shared facility list carries its own terms,
+    and so that nobody has to guess whether the packaged sample is real
+    registry data. Both halves are pinned here: what a manifest must report,
+    and that its absence is completely silent.
+    """
+
+    def test_a_directory_without_a_manifest_loads_silently(self, csv_dir, caplog):
+        with caplog.at_level(logging.DEBUG):
+            catalogs = Catalogs.from_dir(csv_dir)
+        assert catalogs.manifest == {}
+        assert caplog.records == []
+
+    def test_a_manifest_is_read_and_exposed(self, csv_dir):
+        (csv_dir / 'manifest.json').write_text(json.dumps({
+            'facilities': {
+                'source': 'Kenya Master Health Facility List',
+                'vintage': '2025 Q1',
+                'licence': 'CC BY 4.0',
+                'url': 'https://example.gov/mfl',
+                'retrieved': '2025-03-14',
+            },
+        }), encoding='utf-8')
+        catalogs = Catalogs.from_dir(csv_dir)
+        assert catalogs.manifest['facilities']['source'] == (
+            'Kenya Master Health Facility List'
+        )
+        assert catalogs.manifest['facilities']['retrieved'] == '2025-03-14'
+
+    def test_manifest_fields_are_free_form(self, csv_dir):
+        # No controlled vocabulary: a country's own terms must survive.
+        (csv_dir / 'manifest.json').write_text(json.dumps({
+            'loggers': {'source': 'MoH procurement export',
+                        'contact': 'coldchain@example.gov'},
+        }), encoding='utf-8')
+        catalogs = Catalogs.from_dir(csv_dir)
+        assert catalogs.manifest['loggers']['contact'] == 'coldchain@example.gov'
+
+    def test_an_uppercase_manifest_filename_is_found(self, csv_dir):
+        (csv_dir / 'Manifest.json').write_text(
+            json.dumps({'facilities': {'source': 'HFR export'}}), encoding='utf-8'
+        )
+        catalogs = Catalogs.from_dir(csv_dir)
+        assert catalogs.manifest['facilities']['source'] == 'HFR export'
+
+    def test_a_manifest_for_a_catalog_that_is_not_there_is_an_error(self, tmp_path):
+        # Otherwise the packaged default appliances would be labelled with
+        # someone else's provenance.
+        directory = tmp_path / 'facilities-only'
+        directory.mkdir()
+        write_csv(directory / 'facilities.csv', FACILITY_CSV)
+        (directory / 'manifest.json').write_text(
+            json.dumps({'appliances': {'source': 'Our own fridges'}}),
+            encoding='utf-8',
+        )
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_dir(directory)
+        assert 'appliances' in str(excinfo.value)
+        assert 'manifest.json' in str(excinfo.value)
+
+    def test_a_manifest_key_that_is_not_a_catalog_kind_is_an_error(self, csv_dir):
+        (csv_dir / 'manifest.json').write_text(
+            json.dumps({'source': 'flat, not keyed by kind'}), encoding='utf-8'
+        )
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_dir(csv_dir)
+        assert 'facilities' in str(excinfo.value)
+
+    def test_a_malformed_manifest_names_the_file(self, csv_dir):
+        (csv_dir / 'manifest.json').write_text('{ not json', encoding='utf-8')
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_dir(csv_dir)
+        assert 'manifest.json' in str(excinfo.value)
+
+    def test_a_manifest_entry_must_be_an_object(self, csv_dir):
+        (csv_dir / 'manifest.json').write_text(
+            json.dumps({'facilities': 'NHFR'}), encoding='utf-8'
+        )
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_dir(csv_dir)
+        assert 'facilities' in str(excinfo.value)
+
+    def test_a_replaced_catalog_keeps_the_packaged_provenance(self, tmp_path):
+        # from_dir() with only facilities leaves the packaged equipment in
+        # place, so the manifest must still describe where that came from.
+        directory = tmp_path / 'facilities-only'
+        directory.mkdir()
+        write_csv(directory / 'facilities.csv', FACILITY_CSV)
+        catalogs = Catalogs.from_dir(directory)
+        assert 'facilities' not in catalogs.manifest
+        assert 'E003' in catalogs.manifest['appliances']['source']
+        assert 'E006' in catalogs.manifest['loggers']['source']
+
+    def test_the_packaged_default_reports_synthetic_facilities(self):
+        # The sample facilities are invented. Labelling them NHFR/GRID3 would
+        # restore the confusion that shrinking the default set removed.
+        manifest = Catalogs().manifest
+        source = manifest['facilities']['source']
+        assert 'Synthetic' in source
+        assert 'NHFR' not in source
+        assert 'GRID3' not in source
+        assert manifest['facilities']['licence']
+
+    def test_nigeria_sokoto_reports_the_registry_provenance(self):
+        manifest = Catalogs.builtin('nigeria-sokoto').manifest
+        source = manifest['facilities']['source']
+        assert 'NHFR_2024' in source
+        assert 'GRID3_EHEALTH' in source
+        # Its equipment is still the packaged sample, and says so.
+        assert 'E003' in manifest['appliances']['source']
+
+    def test_pqs_e003_full_reports_the_who_catalogue(self):
+        manifest = Catalogs.builtin('pqs-e003-full').manifest
+        assert 'E003' in manifest['appliances']['source']
+        assert 'E006' in manifest['loggers']['source']
+        # Its facilities are still the synthetic sample, and say so.
+        assert 'Synthetic' in manifest['facilities']['source']
+
+    def test_records_in_hand_carry_no_provenance(self):
+        # Lists passed straight to Catalogs() are the caller's; the loader has
+        # nothing to say about them and must not invent anything.
+        catalogs = Catalogs(facilities=FACILITY_ROWS)
+        assert 'facilities' not in catalogs.manifest
+
+    def test_a_manifest_may_be_passed_directly(self):
+        catalogs = Catalogs(
+            facilities=FACILITY_ROWS,
+            manifest={'facilities': {'source': 'Our own export'}},
+        )
+        assert catalogs.manifest['facilities']['source'] == 'Our own export'
+
+    def test_a_manifest_for_an_unsupplied_catalog_is_an_error(self):
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs(facilities=FACILITY_ROWS,
+                     manifest={'loggers': {'source': 'Ours'}})
+        assert 'loggers' in str(excinfo.value)
+
+    def test_the_manifest_does_not_alias_the_packaged_literal(self):
+        catalogs = Catalogs()
+        catalogs.manifest['facilities']['source'] = 'mutated'
+        assert 'Synthetic' in Catalogs().manifest['facilities']['source']
+
+    def test_a_manifest_leaves_the_records_alone(self, csv_dir):
+        (csv_dir / 'manifest.json').write_text(
+            json.dumps({'facilities': {'source': 'HFR export'}}), encoding='utf-8'
+        )
+        with_manifest = Catalogs.from_dir(csv_dir)
+        (csv_dir / 'manifest.json').unlink()
+        without = Catalogs.from_dir(csv_dir)
+        assert with_manifest.facilities == without.facilities
+        assert with_manifest.appliances == without.appliances
+
+
 class TestFromFiles:
 
     def test_a_csv_facility_list_beside_a_json_appliance_list(self, tmp_path):
