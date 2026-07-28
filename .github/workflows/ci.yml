@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same ref supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'   # Pipfile [requires]
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      # Fails if Pipfile was edited without re-running `pipenv lock`.
+      - name: Check Pipfile.lock is in sync with Pipfile
+        run: pipenv verify
+
+      # `sync` installs exactly what Pipfile.lock pins and never re-resolves,
+      # so a green run means the committed lock is genuinely installable.
+      - name: Install dependencies
+        run: pipenv sync --dev
+
+      - name: Run test suite
+        run: pipenv run pytest tests/ -q
+
+  js-tests:
+    name: JavaScript tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test
+
+  fhir-transform:
+    name: FHIR transform acceptance checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        run: pipenv sync --dev
+
+      # Transforms a generated EMS transmission to a FHIR R4 Bundle, validates
+      # every resource with fhir.resources, and asserts the four acceptance
+      # properties. Exits non-zero if any check fails.
+      - name: Run Phase 2 proof of concept
+        run: pipenv run python fhir/transform/run_phase2_poc.py
+
+  fhir-sushi:
+    name: FHIR profile compile (SUSHI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Compiles input/fsh/ to FHIR StructureDefinitions, CodeSystems and
+      # ValueSets. SUSHI exits non-zero on errors; warnings do not fail the
+      # build, and there is one known pre-existing warning.
+      - name: Compile FSH
+        run: npx --yes fsh-sushi@3 .
+        working-directory: fhir

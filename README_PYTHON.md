@@ -6,7 +6,7 @@ The reference Python implementation of the CCE thermal simulator. See [README.md
 
 Runtime: **Pydantic 2.x** (schema validation), plus `python-dateutil` and `pytz`. The simulation engine itself is pure Python standard library — only the schema layer (`utils/schemas.py`) needs Pydantic.
 
-Development: pytest, numpy, pandas, matplotlib, locust (see `Pipfile`).
+Development: pytest, `gibberish` (test fixtures), `fhir.resources` (the FHIR transform tests), numpy, pandas, matplotlib, locust (see `Pipfile`).
 
 ## Install
 
@@ -14,7 +14,7 @@ Requires Python 3.12.
 
 ```bash
 pipenv install          # runtime dependencies only
-pipenv install --dev    # adds pytest, locust, and the notebook/plotting stack
+pipenv sync --dev       # everything, exactly as pinned in Pipfile.lock
 pipenv shell
 ```
 
@@ -22,7 +22,7 @@ Or without pipenv:
 
 ```bash
 pip install "pydantic>=2.4,<3" python-dateutil pytz
-pip install pytest locust python-dotenv matplotlib numpy pandas   # development extras
+pip install pytest gibberish "fhir.resources>=7.0.0,<8" locust python-dotenv matplotlib numpy pandas   # development extras
 ```
 
 Verify:

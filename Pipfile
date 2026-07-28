@@ -15,6 +15,13 @@ tzdata = '2023.3'
 [dev-packages]
 # Tests
 pytest = '7.4.3'
+# tests/conftest.py builds random device/facility names with Gibberish.
+gibberish = '0.4.0'
+# tests/test_fhir_transform.py and tests/test_alarm_episodes.py validate the
+# transform output against the R4B models. Without it those tests
+# importorskip() and the FHIR coverage silently disappears; it is also what
+# fhir/transform/run_phase2_poc.py validates with.
+"fhir.resources" = '>=7.0.0,<8'
 # Load testing (locustfile.py)
 locust = '2.17.0'
 python-dotenv = '1.0.0'

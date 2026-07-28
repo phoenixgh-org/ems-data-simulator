@@ -102,13 +102,15 @@ Maps a cce-interop EMS transmission to a plain FHIR R4 **Bundle** of `Device` +
 - `ALRM`/`EERR`/`LERR` → coded `Observation` (`valueCodeableConcept`); `MSW` → `valueBoolean`
 
 ```bash
-pip install "fhir.resources>=7.0.0"        # optional; quick pure-Python validation
+pipenv sync --dev                          # includes fhir.resources
 python fhir/transform/run_phase2_poc.py    # writes + validates examples/
 python -m pytest tests/test_fhir_transform.py
 ```
 
-`fhir.resources` is an optional, FHIR-only dependency (not required by the core
-simulator). The transform test skips cleanly when it is not installed.
+`fhir.resources` is a FHIR-only dependency — not needed to run the simulator
+itself, which is why it sits in `[dev-packages]` rather than `[packages]`. The
+transform tests `importorskip` it, so they vanish silently when it is missing;
+CI installs it so that coverage is always exercised.
 
 ### Authoritative validation with the HL7 FHIR Validator (Java)
 

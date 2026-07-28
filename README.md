@@ -1,5 +1,7 @@
 # CCE Thermal Simulator
 
+[![CI](https://github.com/phoenixgh-org/ems-data-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/phoenixgh-org/ems-data-simulator/actions/workflows/ci.yml)
+
 A physics-based synthetic data generator for cold chain equipment (CCE) monitoring systems. Produces realistic time-series data conforming to the **CCE Data Delivery** specification — the draft standard for delivering vaccine refrigerator monitoring data from equipment suppliers to national systems — for both EMS (Equipment Monitoring System) and RTMD (Remote Temperature Monitoring Device) transfer types.
 
 - Specification and schema drafts: <https://docs.2to8.cc/cce-data-interop/overview/>
