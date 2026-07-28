@@ -1,6 +1,6 @@
 import datetime as dt
 import random
-from ccesim.devicegroups import DeviceGroup, rtmds, fridges
+from ccesim.devicegroups import DeviceGroup, rtmds, fridges, validate_power_type
 from ccesim.facilities import Facility, random_facility
 from ccesim.generator import random_serial, random_amid
 from ccesim.simulator import SimulatedRecordSet, SimulatorState, default_config
@@ -84,6 +84,32 @@ def _infer_power_type(appliance_type: str) -> str:
     return 'mains'
 
 
+def _resolve_power_type(appliance) -> str:
+    """Resolve an appliance's power type: 'solar' or 'mains'.
+
+    An explicit `power_type` on the appliance record always wins. Only when it
+    is absent do we fall back to sniffing the free-text `type` string, which is
+    logged at INFO because that guess is unreliable on catalogs the simulator
+    did not ship (e.g. 'Refrigerator (photovoltaic)' sniffs as mains). The
+    answer selects the whole power model, so a wrong one is not cosmetic.
+    """
+    explicit = validate_power_type(
+        getattr(appliance, 'power_type', None),
+        f"{appliance.pqs_code} ({appliance.manufacturer} {appliance.model})",
+    )
+    if explicit is not None:
+        return explicit
+
+    inferred = _infer_power_type(appliance.type)
+    logger.info(
+        "Appliance %s (%s %s) declares no power_type; inferred '%s' from its "
+        "type string %r. Set power_type explicitly to remove the guess.",
+        appliance.pqs_code, appliance.manufacturer, appliance.model,
+        inferred, appliance.type,
+    )
+    return inferred
+
+
 class BaseRtmDevice:
     """
     Class that models an RTMD or EMS device.
@@ -95,8 +121,9 @@ class BaseRtmDevice:
         self.config = config
         self.last_sample_time = None  # Time of the last sample in previous report
 
-        # Infer power source from the appliance's PQS type string
-        self.powersource = _infer_power_type(self.config.appliance.type)
+        # Explicit power_type on the appliance record wins; otherwise fall back
+        # to sniffing its PQS type string.
+        self.powersource = _resolve_power_type(self.config.appliance)
 
         # Create simulation config based on power type and facility location
         self.sim_config = default_config(
