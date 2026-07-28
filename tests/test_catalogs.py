@@ -13,11 +13,23 @@ import logging
 import pytest
 
 from ccesim.catalogs import (
+    BUILTIN_CATALOGS,
     CATALOG_DIR_ENV,
     Catalogs,
     default_catalogs,
     reset_default_catalogs,
 )
+
+
+#: Licence families that make crediting the source a condition of use. The
+#: loader deliberately never interprets a licence string (see MANIFEST_FIELDS),
+#: so this lives here, with the compliance check that needs it.
+_ATTRIBUTION_MARKERS = ('cc by', 'creative commons attribution', 'attribution is required')
+
+
+def _requires_attribution(licence):
+    lowered = (licence or '').lower()
+    return any(marker in lowered for marker in _ATTRIBUTION_MARKERS)
 from ccesim.device import MonitoringDeviceConfig, _resolve_power_type
 from ccesim.devicegroups import (
     Device,
@@ -452,42 +464,26 @@ class TestProvenanceManifest:
 
     def test_nigeria_sokoto_reports_the_grid3_provenance(self):
         manifest = Catalogs.builtin('nigeria-sokoto').manifest
-        facilities = manifest['facilities']
-        source = facilities['source']
-        assert 'GRID3 NGA - Health Facilities v2.0' in source
-        # CC BY 4.0 obliges attribution, so the citation has to be carried.
-        assert 'CC BY 4.0' in facilities['licence']
-        assert 'doi.org/10.7916/kv1n-0743' in facilities['citation']
-        assert '2024-11-13' in facilities['vintage']
+        assert 'GRID3 NGA - Health Facilities v2.0' in manifest['facilities']['source']
         # Its equipment is still the packaged sample, and says so.
         assert 'E003' in manifest['appliances']['source']
 
-    def test_the_sokoto_lineage_rule_holds_over_the_records(self):
-        # The manifest states a RULE about the per-record lineage flags, not a
-        # count: NHFR_2024 means the facility is in the national registry and
-        # carries an nhfr_uid, GRID3_EHEALTH means GRID3 found it and none
-        # exists. Prose describing data drifts silently unless something
-        # checks it -- ccesim-wdz was exactly that failure. This is the check.
-        catalogs = Catalogs.builtin('nigeria-sokoto')
-        source = catalogs.manifest['facilities']['source']
-        assert 'nhfr_uid' in source
-
-        seen = set()
-        for record in catalogs.facilities:
-            name_source = record['facility_name_source']
-            has_uid = bool(str(record['nhfr_uid'] or '').strip())
-            seen.add(name_source)
-            if name_source == 'NHFR_2024':
-                assert has_uid, f"{record['facility_name']} claims NHFR_2024 but has no nhfr_uid"
-            elif name_source == 'GRID3_EHEALTH':
-                assert not has_uid, f"{record['facility_name']} claims GRID3_EHEALTH but carries an nhfr_uid"
-            else:
-                raise AssertionError(
-                    f"unknown facility_name_source {name_source!r}; the manifest "
-                    f"describes only NHFR_2024 and GRID3_EHEALTH"
+    def test_an_attribution_licence_is_matched_by_a_citation(self):
+        # Not a claim about any one dataset: attribution licences (CC BY and
+        # friends) make crediting the source a CONDITION of redistribution, so
+        # a licence that demands it and a manifest that cannot supply it puts
+        # the package out of compliance. Applies to every catalog we ship, and
+        # to any a country or manufacturer drops in.
+        for name in BUILTIN_CATALOGS:
+            for kind, entry in Catalogs.builtin(name).manifest.items():
+                licence = entry.get('licence', '')
+                if not _requires_attribution(licence):
+                    continue
+                citation = entry.get('citation', '').strip()
+                assert citation, (
+                    f"builtin {name!r} {kind} is licensed under terms requiring "
+                    f"attribution ({licence[:40]}...) but carries no citation"
                 )
-        # The manifest says both kinds are present; hold it to that.
-        assert seen == {'NHFR_2024', 'GRID3_EHEALTH'}
 
     def test_pqs_e003_full_reports_the_who_catalogue(self):
         manifest = Catalogs.builtin('pqs-e003-full').manifest

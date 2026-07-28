@@ -98,7 +98,9 @@ MANIFEST_FILENAME = 'manifest.json'
 #: The provenance fields this project uses. A CONVENTION, NOT A SCHEMA: the
 #: loader neither requires these nor rejects others, and never interprets a
 #: value. A licence here is a string a human reads, not a controlled term.
-MANIFEST_FIELDS = ('source', 'vintage', 'licence', 'url', 'retrieved')
+MANIFEST_FIELDS = (
+    'source', 'vintage', 'licence', 'url', 'retrieved', 'citation',
+)
 
 
 # ---------------------------------------------------------------------------
