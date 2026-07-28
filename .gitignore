@@ -166,6 +166,7 @@ scratchpad.ipynb
 # Claude stuff
 .claude
 AGENTS.md
+CLAUDE.md
 
 # MacOS
 .DS_Store
@@ -182,3 +183,6 @@ AGENTS.md
 .dolt/
 *.db
 .beads-credential-key
+
+# Internal-only documentation and scratchpads
+docs/internal
