@@ -14,7 +14,7 @@ export {
   EventConfig,
   FaultConfig,
   FaultType,
-  default_config,
+  defaultConfig,
 } from "./config.js";
 
 // Schemas

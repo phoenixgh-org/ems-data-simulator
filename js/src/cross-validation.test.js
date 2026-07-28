@@ -24,7 +24,7 @@ import {
   EventConfig,
   FaultConfig,
   FaultType,
-  default_config,
+  defaultConfig,
   SimulatedRecordSet,
   formatEmsDateTime,
 } from "./index.js";
@@ -54,15 +54,15 @@ function buildConfig(scenarioName) {
 
   switch (scenarioName) {
     case "mains_normal": {
-      cfg = default_config("mains", LATITUDE);
+      cfg = defaultConfig("mains", LATITUDE);
       break;
     }
     case "solar_normal": {
-      cfg = default_config("solar", LATITUDE);
+      cfg = defaultConfig("solar", LATITUDE);
       break;
     }
     case "refrigerant_leak": {
-      cfg = default_config("mains", LATITUDE);
+      cfg = defaultConfig("mains", LATITUDE);
       cfg.fault = new FaultConfig({
         fault_type: FaultType.REFRIGERANT_LEAK,
         fault_start_offset_s: 0.0,
@@ -70,7 +70,7 @@ function buildConfig(scenarioName) {
       break;
     }
     case "stuck_door": {
-      cfg = default_config("mains", LATITUDE);
+      cfg = defaultConfig("mains", LATITUDE);
       cfg.fault = new FaultConfig({
         fault_type: FaultType.STUCK_DOOR,
         fault_start_offset_s: 0.0,
@@ -79,7 +79,7 @@ function buildConfig(scenarioName) {
       break;
     }
     case "power_outage": {
-      cfg = default_config("mains", LATITUDE);
+      cfg = defaultConfig("mains", LATITUDE);
       cfg.fault = new FaultConfig({
         fault_type: FaultType.POWER_OUTAGE,
         fault_start_offset_s: 0.0,
@@ -88,7 +88,7 @@ function buildConfig(scenarioName) {
       break;
     }
     case "compressor_failure": {
-      cfg = default_config("mains", LATITUDE);
+      cfg = defaultConfig("mains", LATITUDE);
       cfg.fault = new FaultConfig({
         fault_type: FaultType.COMPRESSOR_FAILURE,
         fault_start_offset_s: 0.0,
@@ -97,15 +97,15 @@ function buildConfig(scenarioName) {
       break;
     }
     case "icebank_unit": {
-      cfg = default_config("solar", LATITUDE);
+      cfg = defaultConfig("solar", LATITUDE);
       cfg.thermal.icebank_capacity_j = 3_000_000.0;
       cfg.thermal.R_icebank = 0.375;
       cfg.thermal.compressor_targets_icebank = true;
       break;
     }
     case "busy_facility": {
-      cfg = default_config("mains", LATITUDE);
-      cfg.events = EventConfig.busy_facility();
+      cfg = defaultConfig("mains", LATITUDE);
+      cfg.events = EventConfig.busyFacility();
       break;
     }
     default:

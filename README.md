@@ -68,9 +68,9 @@ cd js && npm install
 ```
 
 ```javascript
-import { SimulatedRecordSet, default_config } from './src/index.js';
+import { SimulatedRecordSet, defaultConfig } from './src/index.js';
 
-const config = default_config('mains', 12.0);
+const config = defaultConfig('mains', 12.0);
 config.random_seed = 42;                     // reproducible output
 const rs = SimulatedRecordSet.generate(config, 96, new Date(Date.UTC(2024, 5, 15)), 900);
 
@@ -156,6 +156,10 @@ Faults compose with stochastic elements (door openings, ambient noise, mains out
 | `frequent_short()` | ~10 | ~290 | 7.3 C | 0 | Many brief opens, marginal |
 | `busy_facility()` | ~16 | ~440 | 8.0 C | 0 | High-traffic / campaign days |
 | `few_but_long()` | ~3 | ~530 | 13.1 C | 12 | Extended opens, causes excursions |
+
+Preset names are shown in their Python spelling. The JavaScript port follows JS
+convention and names them `bestpractice()`, `normal()`, `frequentShort()`,
+`busyFacility()`, and `fewButLong()`.
 
 ## WHO alarm codes
 

@@ -20,9 +20,9 @@ npm install
 ### Low-level: SimulatedRecordSet
 
 ```javascript
-import { SimulatedRecordSet, default_config } from './src/index.js';
+import { SimulatedRecordSet, defaultConfig } from './src/index.js';
 
-const config = default_config('mains', 12.0);
+const config = defaultConfig('mains', 12.0);
 config.random_seed = 42;
 const start = new Date(Date.UTC(2024, 5, 15, 0, 0, 0));
 
@@ -75,7 +75,7 @@ console.log(report.toJSON());
 State persists between `generate()` calls via `SimulatorState`:
 
 ```javascript
-const config = default_config('mains', 12.0);
+const config = defaultConfig('mains', 12.0);
 config.random_seed = 42;
 const start = new Date(Date.UTC(2024, 0, 1));
 
@@ -92,9 +92,9 @@ const rs2 = SimulatedRecordSet.generate(config, 96, nextStart, 900, rs1.state);
 ## Injecting anomalies
 
 ```javascript
-import { default_config, FaultType } from './src/index.js';
+import { defaultConfig, FaultType } from './src/index.js';
 
-const config = default_config('mains', 12.0);
+const config = defaultConfig('mains', 12.0);
 
 // Compressor failure at hour 8, lasting 6 hours
 config.fault.fault_type = FaultType.COMPRESSOR_FAILURE;
@@ -117,9 +117,9 @@ import { EventConfig } from './src/index.js';
 
 config.events = EventConfig.bestpractice();
 config.events = EventConfig.normal();
-config.events = EventConfig.few_but_long();     // causes HEAT alarms
-config.events = EventConfig.frequent_short();
-config.events = EventConfig.busy_facility();
+config.events = EventConfig.fewButLong();     // causes HEAT alarms
+config.events = EventConfig.frequentShort();
+config.events = EventConfig.busyFacility();
 ```
 
 Presets compose with faults:
@@ -127,7 +127,7 @@ Presets compose with faults:
 ```javascript
 import { FaultConfig, FaultType, EventConfig } from './src/index.js';
 
-config.events = EventConfig.few_but_long();
+config.events = EventConfig.fewButLong();
 config.fault = new FaultConfig({
   fault_type: FaultType.POWER_OUTAGE,
   fault_start_offset_s: 3 * 86400,
@@ -141,8 +141,10 @@ config.fault = new FaultConfig({
 |--------|--------|------------|
 | Schema validation | Pydantic 2.x | None (plain classes with `toJSON()`) |
 | PRNG | Mersenne Twister (`random.Random`) | ARC4 (`seedrandom`) |
-| Facility catalog | 150+ Nigerian facilities | Not included — pass metadata via config |
-| Device catalog | 120+ fridge models, 40+ RTMDs | Not included — pass metadata via config |
+| Function naming | `snake_case` (`default_config`, `few_but_long`) | `camelCase` (`defaultConfig`, `fewButLong`) |
+| Config field naming | `snake_case` | `snake_case` — deliberately kept, see below |
+| Facility catalog | 40+ Nigerian facilities | Not included — pass metadata via config |
+| Device catalog | 90+ fridge models, 10+ RTMDs | Not included — pass metadata via config |
 | Load testing | Locust integration | Not included |
 | Notebooks | Jupyter examples with plots | Not included |
 
@@ -163,7 +165,16 @@ new FaultConfig({ fault_type: FaultType.STUCK_DOOR })
 new SimulationConfig({ thermal, ambient, power, events, fault })
 ```
 
-### `default_config(powerType, latitude)`
+> **Why the field names are still `snake_case`.** Functions and methods in this
+> port follow JS convention (`defaultConfig`, `fewButLong`), but *configuration
+> field* names deliberately match the Python implementation character-for-character.
+> Two reasons: several are physics notation rather than English words (`R`, `C`,
+> `Q_compressor`, `T_setpoint_low`), and keeping them identical is what lets the
+> cross-validation tests compare a JS config against a Python-generated fixture
+> without a translation layer. Config objects are therefore portable between the
+> two implementations as-is.
+
+### `defaultConfig(powerType, latitude)`
 
 Creates a complete `SimulationConfig` with sensible defaults. Ambient temperature is estimated from latitude.
 

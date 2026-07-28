@@ -142,7 +142,7 @@ export class EventConfig {
   }
 
   /** Staff leave the door open for extended periods (2-5+ minutes). */
-  static few_but_long() {
+  static fewButLong() {
     return new EventConfig({
       door_rate_per_hour: 0.3,
       door_mean_duration_s: 180.0,
@@ -153,7 +153,7 @@ export class EventConfig {
   }
 
   /** Staff open the door frequently but briefly (~25s each). */
-  static frequent_short() {
+  static frequentShort() {
     return new EventConfig({
       door_rate_per_hour: 1.2,
       door_mean_duration_s: 25.0,
@@ -164,7 +164,7 @@ export class EventConfig {
   }
 
   /** High-traffic facility with extended operating hours (06:00-20:00). */
-  static busy_facility() {
+  static busyFacility() {
     return new EventConfig({
       door_rate_per_hour: 1.2,
       door_mean_duration_s: 25.0,
@@ -218,7 +218,7 @@ export class SimulationConfig {
  * @param {number|null} latitude - Facility latitude
  * @returns {SimulationConfig}
  */
-export function default_config(powerType = "mains", latitude = null) {
+export function defaultConfig(powerType = "mains", latitude = null) {
   // Estimate ambient temperature from latitude
   let t_mean, t_amplitude;
   if (latitude !== null) {

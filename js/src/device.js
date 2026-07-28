@@ -5,7 +5,7 @@
  */
 
 import { SimulatedRecordSet, SimulatorState } from "./recordset.js";
-import { SimulationConfig, default_config } from "./config.js";
+import { SimulationConfig, defaultConfig } from "./config.js";
 import { RtmdReport, EmsReport } from "./schemas.js";
 
 // ---------------------------------------------------------------------------
@@ -180,7 +180,7 @@ export class BaseRtmDevice {
     // Build simulation config
     this.simConfig =
       config.simConfig ??
-      default_config(config.powerType, config.lat);
+      defaultConfig(config.powerType, config.lat);
     this.simConfig.sample_interval = config.sampleInterval;
 
     // Appliance identity

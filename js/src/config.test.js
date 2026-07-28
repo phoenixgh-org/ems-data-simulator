@@ -7,7 +7,7 @@ import {
   EventConfig,
   FaultConfig,
   SimulationConfig,
-  default_config,
+  defaultConfig,
 } from "./config.js";
 
 // ---------- FaultType enum ----------
@@ -120,7 +120,7 @@ describe("EventConfig", () => {
   });
 
   it("few_but_long preset", () => {
-    const ec = EventConfig.few_but_long();
+    const ec = EventConfig.fewButLong();
     expect(ec.door_rate_per_hour).toBe(0.3);
     expect(ec.door_mean_duration_s).toBe(180.0);
     expect(ec.door_std_duration_s).toBe(120.0);
@@ -129,7 +129,7 @@ describe("EventConfig", () => {
   });
 
   it("frequent_short preset", () => {
-    const ec = EventConfig.frequent_short();
+    const ec = EventConfig.frequentShort();
     expect(ec.door_rate_per_hour).toBe(1.2);
     expect(ec.door_mean_duration_s).toBe(25.0);
     expect(ec.door_std_duration_s).toBe(10.0);
@@ -138,7 +138,7 @@ describe("EventConfig", () => {
   });
 
   it("busy_facility preset", () => {
-    const ec = EventConfig.busy_facility();
+    const ec = EventConfig.busyFacility();
     expect(ec.door_rate_per_hour).toBe(1.2);
     expect(ec.door_mean_duration_s).toBe(25.0);
     expect(ec.door_std_duration_s).toBe(10.0);
@@ -183,11 +183,11 @@ describe("SimulationConfig", () => {
   });
 });
 
-// ---------- default_config ----------
+// ---------- defaultConfig ----------
 
-describe("default_config", () => {
+describe("defaultConfig", () => {
   it("mains defaults", () => {
-    const cfg = default_config("mains");
+    const cfg = defaultConfig("mains");
     expect(cfg).toBeInstanceOf(SimulationConfig);
     expect(cfg.power.power_type).toBe("mains");
     expect(cfg.thermal.R).toBe(1.63);
@@ -211,7 +211,7 @@ describe("default_config", () => {
   });
 
   it("solar defaults", () => {
-    const cfg = default_config("solar");
+    const cfg = defaultConfig("solar");
     expect(cfg.power.power_type).toBe("solar");
     expect(cfg.thermal.Q_compressor).toBe(34.0);
     expect(cfg.thermal.R_door).toBe(0.24);
@@ -226,13 +226,13 @@ describe("default_config", () => {
   });
 
   it("latitude-to-temperature mapping — equator", () => {
-    const cfg = default_config("mains", 0);
+    const cfg = defaultConfig("mains", 0);
     expect(cfg.ambient.T_mean).toBe(30.0);
     expect(cfg.ambient.T_amplitude).toBe(5.0);
   });
 
   it("latitude-to-temperature mapping — tropics (15N)", () => {
-    const cfg = default_config("mains", 15);
+    const cfg = defaultConfig("mains", 15);
     // t_mean = 30 - 15*0.4 = 24.0
     expect(cfg.ambient.T_mean).toBe(24.0);
     // t_amplitude = max(1.5, 5.0 - 15*0.08) = max(1.5, 3.8) = 3.8
@@ -240,7 +240,7 @@ describe("default_config", () => {
   });
 
   it("latitude-to-temperature mapping — subtropics (30N)", () => {
-    const cfg = default_config("mains", 30);
+    const cfg = defaultConfig("mains", 30);
     // t_mean = max(15, 30 - 30*0.4) = max(15, 18) = 18.0
     expect(cfg.ambient.T_mean).toBe(18.0);
     // abs_lat >= 25, so t_amplitude = 5.0
@@ -248,7 +248,7 @@ describe("default_config", () => {
   });
 
   it("latitude-to-temperature mapping — high latitude (50N)", () => {
-    const cfg = default_config("mains", 50);
+    const cfg = defaultConfig("mains", 50);
     // t_mean = max(15, 30 - 50*0.4) = max(15, 10) = 15.0
     expect(cfg.ambient.T_mean).toBe(15.0);
     // abs_lat >= 25, so t_amplitude = 5.0
@@ -256,7 +256,7 @@ describe("default_config", () => {
   });
 
   it("latitude-to-temperature mapping — southern hemisphere", () => {
-    const cfg = default_config("mains", -5);
+    const cfg = defaultConfig("mains", -5);
     // abs_lat = 5; t_mean = 30 - 5*0.4 = 28.0
     expect(cfg.ambient.T_mean).toBe(28.0);
     // t_amplitude = max(1.5, 5.0 - 5*0.08) = max(1.5, 4.6) = 4.6
@@ -264,7 +264,7 @@ describe("default_config", () => {
   });
 
   it("default (no args) uses mains", () => {
-    const cfg = default_config();
+    const cfg = defaultConfig();
     expect(cfg.power.power_type).toBe("mains");
   });
 });

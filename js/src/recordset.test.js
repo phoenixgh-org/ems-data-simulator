@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { SimulatedRecordSet, SimulatorState } from "./recordset.js";
-import { default_config, FaultType, FaultConfig, SimulationConfig, ThermalConfig, AmbientConfig, PowerConfig, EventConfig } from "./config.js";
+import { defaultConfig, FaultType, FaultConfig, SimulationConfig, ThermalConfig, AmbientConfig, PowerConfig, EventConfig } from "./config.js";
 import { RtmdRecord, EmsRecordMains, EmsRecordSolar } from "./schemas.js";
 
 const FIXED_START = new Date(Date.UTC(2025, 5, 1, 12, 0, 0)); // June 1, 2025 12:00:00 UTC
 const SEED = 42;
 
 function mainsConfig() {
-  const cfg = default_config("mains");
+  const cfg = defaultConfig("mains");
   cfg.random_seed = SEED;
   return cfg;
 }
 
 function solarConfig() {
-  const cfg = default_config("solar");
+  const cfg = defaultConfig("solar");
   cfg.random_seed = SEED;
   return cfg;
 }
@@ -307,7 +307,7 @@ describe("Determinism", () => {
 });
 
 // -- 10. Side-by-side validation with Python reference values -----------------
-// Python: seed=42, default_config(power_type="mains", latitude=12.0), 24 records at 15-min interval
+// Python: seed=42, defaultConfig(power_type="mains", latitude=12.0), 24 records at 15-min interval
 // Starting 2024-01-15T00:00:00
 
 describe("Side-by-side Python validation", () => {
@@ -340,7 +340,7 @@ describe("Side-by-side Python validation", () => {
   ];
 
   it("JS output matches Python reference values", () => {
-    const cfg = default_config("mains", 12.0);
+    const cfg = defaultConfig("mains", 12.0);
     cfg.random_seed = 42;
     const start = new Date(Date.UTC(2024, 0, 15, 0, 0, 0));
     const rs = SimulatedRecordSet.generate(cfg, 24, start, 900);

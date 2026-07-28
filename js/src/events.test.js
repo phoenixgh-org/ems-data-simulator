@@ -797,45 +797,45 @@ describe("EventConfig presets", () => {
   });
 
   it("few_but_long opens per day", () => {
-    const { opensPd } = simulateDailyDoorStats(EventConfig.few_but_long());
+    const { opensPd } = simulateDailyDoorStats(EventConfig.fewButLong());
     expect(opensPd).toBeGreaterThanOrEqual(1);
     expect(opensPd).toBeLessThanOrEqual(8);
   });
 
   it("few_but_long high avg duration", () => {
-    const { avgDur } = simulateDailyDoorStats(EventConfig.few_but_long());
+    const { avgDur } = simulateDailyDoorStats(EventConfig.fewButLong());
     expect(avgDur).toBeGreaterThan(60);
   });
 
   it("few_but_long high secs per day", () => {
-    const { secsPd } = simulateDailyDoorStats(EventConfig.few_but_long());
+    const { secsPd } = simulateDailyDoorStats(EventConfig.fewButLong());
     expect(secsPd).toBeGreaterThan(80);
   });
 
   it("frequent_short opens per day", () => {
-    const { opensPd } = simulateDailyDoorStats(EventConfig.frequent_short());
+    const { opensPd } = simulateDailyDoorStats(EventConfig.frequentShort());
     expect(opensPd).toBeGreaterThanOrEqual(5);
     expect(opensPd).toBeLessThanOrEqual(20);
   });
 
   it("frequent_short low avg duration", () => {
-    const { avgDur } = simulateDailyDoorStats(EventConfig.frequent_short());
+    const { avgDur } = simulateDailyDoorStats(EventConfig.frequentShort());
     expect(avgDur).toBeLessThan(45);
   });
 
   it("busy_facility high opens", () => {
-    const { opensPd } = simulateDailyDoorStats(EventConfig.busy_facility());
+    const { opensPd } = simulateDailyDoorStats(EventConfig.busyFacility());
     expect(opensPd).toBeGreaterThanOrEqual(12);
   });
 
   it("busy_facility extended hours", () => {
-    const config = EventConfig.busy_facility();
+    const config = EventConfig.busyFacility();
     expect(config.working_hours).toEqual([6, 20]);
   });
 
   it("busy_facility more opens than frequent_short", () => {
-    const busy = simulateDailyDoorStats(EventConfig.busy_facility());
-    const freq = simulateDailyDoorStats(EventConfig.frequent_short());
+    const busy = simulateDailyDoorStats(EventConfig.busyFacility());
+    const freq = simulateDailyDoorStats(EventConfig.frequentShort());
     expect(busy.opensPd).toBeGreaterThan(freq.opensPd);
   });
 });
