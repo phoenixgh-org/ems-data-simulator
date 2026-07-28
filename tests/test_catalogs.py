@@ -474,6 +474,44 @@ Sokoto Hospital Specialist,NGA,13.06,5.25,OLMIS-42,OLMIS-43
             Catalogs.from_files(facilities=path)
         assert 'openlmis_id' in str(excinfo.value)
 
+    def test_trailing_empty_columns_load_and_are_dropped(self, tmp_path):
+        # The classic Excel 'Save as CSV' artefact: a sheet where someone once
+        # typed in a far column exports with trailing commas on every line.
+        # Those cells carry no data and are dropped as "not stated", so two or
+        # more of them must not read as a column named '' appearing twice.
+        path = write_csv(tmp_path / 'facilities.csv', """
+facility_name,iso,latitude,longitude,,
+Sokoto Hospital Specialist,NGA,13.06,5.25,,
+""")
+        record = Catalogs.from_files(facilities=path).facilities[0]
+        assert record == {
+            'facility_name': 'Sokoto Hospital Specialist',
+            'iso': 'NGA',
+            'latitude': pytest.approx(13.06),
+            'longitude': pytest.approx(5.25),
+        }
+
+    def test_one_trailing_empty_column_still_loads(self, tmp_path):
+        # The single-comma case always loaded; it must stay consistent with the
+        # two-comma one rather than the two diverging.
+        path = write_csv(tmp_path / 'facilities.csv', """
+facility_name,iso,latitude,longitude,
+Sokoto Hospital Specialist,NGA,13.06,5.25,
+""")
+        assert list(Catalogs.from_files(facilities=path).facilities[0]) == [
+            'facility_name', 'iso', 'latitude', 'longitude',
+        ]
+
+    def test_a_named_duplicate_beside_empty_columns_is_still_an_error(self, tmp_path):
+        # Tolerating the unnamed columns must not blunt the real check.
+        path = write_csv(tmp_path / 'facilities.csv', """
+iso,latitude,latitude,longitude,,
+NGA,13.06,14.99,5.25,,
+""")
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.from_files(facilities=path)
+        assert 'latitude' in str(excinfo.value)
+
     def test_distinct_columns_that_merely_look_alike_still_load(self, tmp_path):
         # Guards the duplicate check against over-reach: 'lga' and 'lga_name'
         # are different columns and must both survive.

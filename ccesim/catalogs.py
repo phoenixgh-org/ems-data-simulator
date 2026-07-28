@@ -305,10 +305,19 @@ def _reject_duplicate_columns(path, fieldnames):
 
     Case and spacing are folded, so 'latitude' and 'Latitude' count as the
     same column here rather than falling through to the synonym check below.
+
+    UNNAMED COLUMNS ARE NOT COLUMNS. A header ending in two or more commas is
+    the classic Excel 'Save as CSV' artefact from a sheet where someone once
+    typed in a far column; every such cell is blank and `_clean_csv_row()`
+    already drops it as "not stated". Counting them here as a column named ''
+    duplicated would reject a file that carries no duplicate data at all, and
+    with a message naming no column the user could find.
     '''
     seen = {}
     for name in fieldnames:
         folded = _normalize_key(name)
+        if not folded:
+            continue
         if folded in seen:
             first = seen[folded]
             clash = (
