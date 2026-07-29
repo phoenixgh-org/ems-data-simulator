@@ -17,6 +17,8 @@ Anyone who needs realistic CCE monitoring data but does not have access to a rea
 
 The simulator generates data entirely from first principles. It needs no database, no network, and no external data source: the temperature series is produced by integrating a thermal model of the refrigerator, not by replaying recorded data.
 
+It is also the first producer feeding the CCE data delivery validator (`../cce-data-delivery-validator`), the companion project that checks a delivery against the schema and the prose requirements. The two evolve together: the simulator's payloads are the validator's working corpus, so a change on either side is expected to be answered on the other.
+
 Available in two implementations:
 
 - **[Python](README_PYTHON.md)** — the reference implementation, with Pydantic schemas, Locust load testing, and Jupyter notebook examples
@@ -275,6 +277,26 @@ TVC_eq = TAMB - Q_compressor * R
 This must be well below `T_setpoint_low` for the thermostat cycle to work. For example, with `TAMB=28`, `Q=300`, `R=0.12`: `TVC_eq = 28 - 36 = -8 C`.
 
 The **time constant** `tau = R * C` controls how quickly TVC responds to changes. Larger tau means slower, more stable temperature swings.
+
+## FHIR logical models and transform
+
+**[`fhir/`](fhir/README.md)** holds a parallel, FHIR-native expression of the same
+data model: logical models for the transmission / report / record structure,
+terminology for the 71 PQS E006 data-object codes and the E003 alarm codes, a
+StructureMap, an executable reference transformer that turns simulator output into
+a FHIR R4 Bundle, an architecture decision record, and a validation harness. It
+exists to answer a question the JSON delivery schema alone cannot: how vaccine
+refrigerator telemetry enters the FHIR-based health information exchanges that
+receiving countries increasingly run on.
+
+> Status: **draft / experimental**, and not endorsed by or affiliated with WHO or
+> HL7. Canonical URLs use a placeholder host (`worldhealthorg.example`) precisely
+> *because* namespace ownership is an open governance question — do not treat
+> those URLs as resolvable or authoritative, and do not publish artifacts built
+> from them under that namespace.
+
+See **[fhir/README.md](fhir/README.md)** for the mapping options, the transform,
+and the roadmap.
 
 ## License
 
