@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: >-
+  If you use this simulator, or data generated with it, in academic work,
+  please cite it as below.
+title: "CCE Thermal Simulator (ems-data-simulator)"
+abstract: >-
+  A physics-based synthetic data generator for cold chain equipment (CCE)
+  monitoring systems. It integrates a thermal model of a vaccine refrigerator or
+  freezer to produce realistic temperature, power and event time series with
+  known, labelled fault conditions, and emits them as payloads conforming to the
+  CCE Data Delivery specification for both EMS (Equipment Monitoring System) and
+  RTMD (Remote Temperature Monitoring Device) transfer types. Reference
+  implementation in Python, with a behaviourally equivalent JavaScript port.
+type: software
+authors:
+  - given-names: Benson
+    family-names: Miller
+    email: benson.miller@gmail.com
+    affiliation: Phoenix Global Health
+repository-code: "https://github.com/phoenixgh-org/ems-data-simulator"
+license: MIT
+# Declared package version. There is no tagged release yet; when citing a
+# specific state of the software, cite the commit you used.
+version: "0.1.0"
+keywords:
+  - cold chain
+  - vaccine
+  - refrigeration
+  - synthetic data
+  - simulation
+  - global health
+  - immunisation supply chain
+  - WHO PQS
+  - E006
+  - cce-interop
+  - EMS
+  - RTMD
