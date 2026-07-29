@@ -8,6 +8,12 @@
     "./catalogs-node": "./src/catalogs-node.js"
   },
   "description": "JavaScript port of the EMS cold-chain data simulator",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phoenixgh-org/ems-data-simulator.git",
+    "directory": "js"
+  },
   "scripts": {
     "test": "vitest run"
   },
