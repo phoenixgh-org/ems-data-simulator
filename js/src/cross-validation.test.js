@@ -12,9 +12,13 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { CATALOG_KINDS } from "./catalogs.js";
+import { fromDir } from "./catalogs-node.js";
 
 import {
   SimulationConfig,
@@ -669,4 +673,159 @@ describe("Python fixture plausibility (sanity check)", () => {
       });
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Catalog parity: both ports read the same catalog directory
+// ---------------------------------------------------------------------------
+//
+// The point of the documented catalog format is that a country writes ONE
+// catalog and both implementations agree on what they read. `fixtures/catalog/`
+// is that shared directory: it is loaded here with `fromDir()` and, by running
+// python, with `ccesim.catalogs.Catalogs.from_dir()`, and the two results are
+// compared.
+//
+// NEITHER SIDE HOLDS AN EXPECTED ANSWER. The comparison is always between two
+// live loads, so there is no snapshot to update: changing a key-normalization
+// rule in one port only turns this red, and it cannot be made green by editing
+// a literal here. `tests/test_catalog_parity.py` runs the same comparison from
+// the other direction, so a one-sided change is caught by either suite alone.
+//
+// The fixture records are deliberately awkward -- alias spellings, spreadsheet
+// headers, coordinates written as strings, unrecognized columns -- because that
+// is where the two ports could drift. See `fixtures/catalog/README.md` for what
+// each record exercises.
+
+const REPO_ROOT = join(__dirname, "..", "..");
+const CATALOG_FIXTURE_DIR = join(FIXTURES_DIR, "catalog");
+
+/** Read the fixture with the Python port and print the loaded records as JSON. */
+const PY_RECORDS_SCRIPT = `
+import json, sys
+from ccesim.catalogs import CATALOG_KINDS, Catalogs
+catalogs = Catalogs.from_dir(sys.argv[1])
+json.dump({kind: getattr(catalogs, kind) for kind in CATALOG_KINDS}, sys.stdout)
+`;
+
+/**
+ * The fixture catalog as the Python loader sees it, or `null` when there is no
+ * Python interpreter to ask. A Python that runs but fails is an error, not a
+ * skip -- that is the divergence this test exists to catch.
+ */
+function pythonCatalogRecords() {
+  const python = process.env.CCESIM_PYTHON ?? "python3";
+  let stdout;
+  try {
+    stdout = execFileSync(python, ["-c", PY_RECORDS_SCRIPT, CATALOG_FIXTURE_DIR], {
+      // The ccesim package is imported from the repository root.
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw new Error(
+      `the Python port failed to load ${CATALOG_FIXTURE_DIR}:\n` +
+        `${error.stderr || error.message}`,
+    );
+  }
+  return JSON.parse(stdout);
+}
+
+/** The facility fields the simulator actually reads off a catalog record. */
+const FACILITY_FIELDS = ["iso", "latitude", "longitude", "facility_name"];
+
+/** The fields that identify a piece of equipment, in the stored PQS form. */
+const COMPARED_FIELDS = {
+  facilities: FACILITY_FIELDS,
+  appliances: ["APQS", "AMFR", "AMOD", "type", "power_type"],
+  loggers: ["LPQS", "LMFR", "LMOD", "type"],
+};
+
+const keySets = (records) => records.map((record) => Object.keys(record).sort());
+
+const fieldsOf = (records, fields) =>
+  records.map((record) =>
+    Object.fromEntries(fields.map((field) => [field, record[field] ?? null])),
+  );
+
+const pythonRecords = pythonCatalogRecords();
+
+describe.skipIf(pythonRecords === null)("catalog parity with Python", () => {
+  let jsRecords;
+
+  beforeAll(() => {
+    const catalogs = fromDir(CATALOG_FIXTURE_DIR);
+    jsRecords = Object.fromEntries(
+      CATALOG_KINDS.map((kind) => [kind, catalogs.records(kind)]),
+    );
+  });
+
+  it("both ports load the same number of records", () => {
+    const counts = (records) =>
+      Object.fromEntries(CATALOG_KINDS.map((kind) => [kind, records[kind].length]));
+    expect(counts(jsRecords)).toEqual(counts(pythonRecords));
+    // Guard against a comparison trivially satisfied by two empty loads.
+    for (const kind of CATALOG_KINDS) {
+      expect(jsRecords[kind].length).toBeGreaterThan(0);
+    }
+  });
+
+  for (const kind of CATALOG_KINDS) {
+    describe(kind, () => {
+      it("normalized key sets match record for record", () => {
+        // Every accepted spelling must resolve to the same stored key in both
+        // ports. This is the assertion that fails when a normalization rule is
+        // changed on one side only.
+        expect(keySets(jsRecords[kind])).toEqual(keySets(pythonRecords[kind]));
+      });
+
+      it("the fields the simulator reads match", () => {
+        // Values, not just key names: a coordinate that stays a string in one
+        // port is a divergence too.
+        const fields = COMPARED_FIELDS[kind];
+        expect(fieldsOf(jsRecords[kind], fields)).toEqual(
+          fieldsOf(pythonRecords[kind], fields),
+        );
+      });
+
+      it("every normalized record matches", () => {
+        // The catch-all: unrecognized keys ride along untouched in both ports,
+        // and any field either port keeps that the assertions above do not name
+        // is still covered.
+        expect(jsRecords[kind]).toEqual(pythonRecords[kind]);
+      });
+    });
+  }
+
+  it("both ports coerce coordinates to numbers", () => {
+    // Equality alone would not catch both ports leaving a coordinate written as
+    // a string alone, which reaches the models as nonsense.
+    for (const records of [jsRecords.facilities, pythonRecords.facilities]) {
+      for (const record of records) {
+        expect(typeof record.latitude).toBe("number");
+        expect(typeof record.longitude).toBe("number");
+      }
+    }
+  });
+
+  it("the fixture still exercises normalization", () => {
+    // Parity over a fixture written entirely in stored-form keys would prove
+    // nothing.
+    for (const kind of CATALOG_KINDS) {
+      const written = JSON.parse(
+        readFileSync(join(CATALOG_FIXTURE_DIR, `${kind}.json`), "utf-8"),
+      );
+      const writtenKeys = new Set(written.flatMap((record) => Object.keys(record)));
+      const loadedKeys = new Set(
+        jsRecords[kind].flatMap((record) => Object.keys(record)),
+      );
+      const renamed = [...writtenKeys].filter((key) => !loadedKeys.has(key));
+      expect(
+        renamed.length,
+        `${kind}.json no longer uses any alias spelling, so parity over it no ` +
+          `longer tests key normalization`,
+      ).toBeGreaterThan(0);
+    }
+  });
 });
