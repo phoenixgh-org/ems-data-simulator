@@ -94,6 +94,382 @@ to **your** facilities too — a list loaded through `Catalogs` or
 `CCESIM_CATALOG_DIR` goes through the same path, so reported coordinates will
 not match your registry exactly.
 
+## Facility and equipment catalogs
+
+Every device is drawn from three catalogs — a **facility**, an **appliance** and
+a **logger** — held together by `ccesim.catalogs.Catalogs`. The packaged default
+is a small illustrative sample (7 synthetic facilities from 27°N to 26°S, 6
+appliances, 3 loggers), not a reference dataset. `Catalogs` lets you replace any
+of the three with your own: a country's facility registry export, the equipment
+actually deployed there, a manufacturer's own product line.
+
+```python
+from ccesim.catalogs import Catalogs
+
+Catalogs()                                     # the packaged defaults
+Catalogs(facilities=[...], appliances=[...])   # lists of dicts in hand
+Catalogs.from_dir('./ke-catalog')              # facilities/appliances/loggers.{json,csv}
+Catalogs.from_files(facilities='hfr_export.csv', appliances='fridges.json')
+Catalogs.builtin('nigeria-sokoto')             # a named packaged catalog
+```
+
+**Anything not supplied falls back to the packaged default.** A country with
+only its own facility list keeps the packaged WHO PQS equipment catalogs.
+`from_files()` needs at least one of the three; the constructor takes lists of
+dicts only, and refuses a path with a pointer to `from_files()`. Records are
+normalized and validated on the way in, and the lists are copies — loading never
+mutates the dicts you hand in, nor the packaged literals — so a `Catalogs`
+object that exists is one every consumer can read without re-checking.
+
+### Fields
+
+A catalog is an array of records. Required fields are required per record;
+everything else is optional, and unrecognized fields are kept verbatim.
+
+| Catalog | Required | Optional (recognized) |
+|---|---|---|
+| `facilities` | `iso`, `latitude`, `longitude` | `OBJECTID`, `globalid`, `nhfr_uid`, `nhfr_facility_code`, `country`, `state`, `lga`, `lga_name_disagreement`, `ward`, `ward_name_disagreement`, `facility_name`, `facility_name_source`, `ownership`, `ownership_type`, `facility_level`, `facility_level_option`, `geocoordinates_source`, `last_updated` |
+| `appliances` | `APQS`, `AMFR`, `AMOD`, `type` | `power_type` |
+| `loggers` | `LPQS`, `LMFR`, `LMOD`, `type` | — |
+
+Notes on individual fields:
+
+- **`facility_name` is not required.** Only the three fields the simulator
+  cannot do without are: `latitude` and `longitude` drive the ambient and solar
+  models, and `iso` becomes the report's country id (`CID`). The recognized
+  optional fields are
+  exactly the ones `ccesim.facilities.Facility` reads; anything else you supply
+  is preserved on the record but never read by the simulator.
+- **`latitude` and `longitude` are coerced to `float`** and range-checked
+  (±90 and ±180). A CSV cell that stays a string, or a registry export that
+  dropped a decimal point (`1306.22`), is rejected here rather than reaching the
+  ambient and solar models as nonsense.
+- **`power_type` is `'solar'` or `'mains'`**, case- and whitespace-insensitive.
+  Omit it and the power type is inferred from the free-text `type` string. State
+  anything else — `diesel` — and the load fails naming the file, the row and the
+  appliance, because the power type selects the entire physical model.
+
+### Both key spellings are accepted
+
+An unmodified WHO PQS export uses `APQS`/`AMFR`/`AMOD` for appliances and
+`LPQS`/`LMFR`/`LMOD` for loggers. A country's own list is far more likely to say
+`pqs_code`/`manufacturer`/`model`. Both load, and both produce the same record —
+the PQS-style form the rest of the package reads.
+
+| Stored as | Also accepted as |
+|---|---|
+| `APQS` | `pqs_code`, `pqs` |
+| `AMFR` | `manufacturer` |
+| `AMOD` | `model` |
+| `LPQS` | `pqs_code`, `pqs` |
+| `LMFR` | `manufacturer` |
+| `LMOD` | `model` |
+| `type` | `appliance_type` (appliances); `logger_type`, `device_type` (loggers) |
+| `power_type` | `powertype`, `power_source` |
+| `latitude` | `lat` |
+| `longitude` | `lon`, `lng`, `long` |
+| `facility_name` | `name`, `facility` |
+| `iso` | `iso3`, `iso_code`, `country_code` |
+| `nhfr_facility_code` | `facility_code` |
+
+**Case, spaces and hyphens are folded** before the table is consulted, so a
+spreadsheet header row of `Facility Name,ISO,Lat,Long` loads exactly like
+`facility_name,iso,latitude,longitude`, and `Power-Type` works too.
+
+**Unrecognized keys ride along untouched.** A column named `openlmis_id` or
+`Our Ref` is stored under that exact name, so your own join keys survive the
+round trip.
+
+**Two columns meaning the same field is an error**, not a resolution by luck: a
+file with both `APQS` and `pqs_code`, or with `latitude` twice, or with
+`latitude` and `Latitude`, is rejected naming both columns. `csv.DictReader`
+would otherwise silently keep the last value — a plausible wrong latitude
+reaching the thermal model. The check runs on the header row alone, so a file
+with no data rows still fails on the duplicate rather than merely reporting an
+empty catalog. Genuinely distinct columns that merely look alike (`lga` and
+`lga_name_disagreement`) are unaffected.
+
+### File formats
+
+**JSON is an array of objects**, matching the shape of the packaged literals:
+
+```json
+[
+  {"facility_name": "Kericho County Referral Hospital", "iso": "KEN",
+   "latitude": -0.3689, "longitude": 35.2861}
+]
+```
+
+A JSON payload that is not an array is an error naming the file; an element that
+is not an object is an error naming the file and the record number; an empty
+array is an error too — a catalog file that supplies nothing is a mistake, not a
+fall back.
+
+**CSV is a header row plus one row per record** — what a country program
+actually has, because the facility list comes out of an HFR or OpenLMIS as a
+spreadsheet:
+
+```csv
+facility_name,iso,latitude,longitude
+Kericho County Referral Hospital,KEN,-0.3689,35.2861
+```
+
+CSV quirks the loader handles deliberately:
+
+- **A UTF-8 byte order mark** from Excel does not become part of the first
+  column name.
+- **Blank cells mean "not stated", not the empty string**, and are dropped. That
+  is what lets a `power_type` column filled in for only some appliances load at
+  all — the blank rows fall back to the type sniff. A blank cell in a *required*
+  column still fails the missing-field check. (JSON has a real `null` for this;
+  an explicitly empty string in JSON is still an error.)
+- **Trailing empty columns** — the classic Excel "Save as CSV" artefact where
+  every line ends in extra commas — load and are dropped, rather than reading as
+  an unnamed column duplicated.
+- **A row with more values than the header has columns** is an error.
+- **An empty file** is an error: a header row is expected.
+
+In a directory, extensions are matched case-insensitively (`facilities.CSV` from
+Excel and several GIS exporters is found), as are file names (`Facilities.csv`).
+Two files claiming the same catalog — `facilities.csv` beside `facilities.JSON`,
+or beside `Facilities.csv` — is an error rather than a resolution by luck. Files
+with any other extension are ignored by `from_dir()`, so a `README` or a
+leftover `.xlsx` in the directory is harmless; naming one explicitly to
+`from_files()` is an error instead. A directory with no catalog file at all is
+an error, listing the names it looked for.
+
+### Where the catalogs come from
+
+`MonitoringDeviceConfig` resolves its catalogs in this order:
+
+1. **An explicit `catalogs=` argument** — highest precedence.
+2. **`CCESIM_CATALOG_DIR`**, naming a catalog directory. This is what makes the
+   feature zero-code: it works for `locustfile.py`, the notebook and any
+   downstream script unchanged.
+3. **The packaged defaults.**
+
+```python
+from ccesim.catalogs import Catalogs
+from ccesim.device import MonitoringDeviceConfig
+
+# 1. Explicit — wins over everything
+config = MonitoringDeviceConfig(type='ems', catalogs=Catalogs.from_dir('./ke-catalog'))
+
+# 2. Environment — no code change at all
+#    $ CCESIM_CATALOG_DIR=./ke-catalog python3 -m locust -f locustfile.py
+config = MonitoringDeviceConfig(type='ems')
+```
+
+An **unusable `CCESIM_CATALOG_DIR` is an error**, never a quiet fall back to the
+packaged catalogs: a user who set it meant it, and silently simulating the
+packaged example facilities instead of their own country is the failure the
+module exists to prevent. An unset or empty value means "not asked for", which
+is what an exported-but-blank variable in a shell profile means in practice.
+
+The resolved catalogs are **cached** — a load test building thousands of devices
+reads the files once, and every device shares one `Catalogs` object. Call
+`ccesim.catalogs.reset_default_catalogs()` to make the next resolution re-read
+the environment.
+
+### Named packaged catalogs
+
+`Catalogs.builtin(name)` loads a catalog shipped with the simulator:
+
+| Name | Carries |
+|---|---|
+| `'default'` | The illustrative sample: 7 facilities, 6 appliances, 3 loggers |
+| `'nigeria-sokoto'` | The 46 real Sokoto State (Nigeria) facilities |
+| `'pqs-e003-full'` | The whole prequalified equipment catalogue: 96 appliances, 13 loggers |
+
+**A builtin only replaces the catalogs it names**; the rest stay the packaged
+default. So `Catalogs.builtin('nigeria-sokoto')` is the real Sokoto facility
+list against the *sample* equipment, and `Catalogs.builtin('pqs-e003-full')` is
+the full equipment lists against the *sample* facilities. This is deliberate —
+it follows the same "anything not supplied falls back" rule as `from_dir()`.
+
+To reconstruct the full set the simulator used to ship as its default — 46
+Sokoto facilities, 96 appliances and 13 loggers together — compose the module
+literals directly:
+
+```python
+from ccesim.catalogs import Catalogs
+from ccesim.facilities import nigeria_sokoto_facilities
+from ccesim.devicegroups import pqs_e003_fridges, pqs_e006_rtmds
+
+Catalogs(facilities=nigeria_sokoto_facilities,
+         appliances=pqs_e003_fridges, loggers=pqs_e006_rtmds)
+```
+
+Records passed in hand carry no provenance, so that object's `.manifest` is
+empty. The Sokoto facilities are CC BY 4.0 and their licence makes citing the
+source a condition of use, so if you redistribute anything derived from this
+composition, carry the provenance across too:
+
+```python
+sokoto = Catalogs.builtin('nigeria-sokoto').manifest
+equipment = Catalogs.builtin('pqs-e003-full').manifest
+
+catalogs = Catalogs(
+    facilities=nigeria_sokoto_facilities,
+    appliances=pqs_e003_fridges,
+    loggers=pqs_e006_rtmds,
+    manifest={
+        'facilities': sokoto['facilities'],
+        'appliances': equipment['appliances'],
+        'loggers': equipment['loggers'],
+    },
+)
+print(catalogs.manifest['facilities']['citation'])
+```
+
+### Provenance: `manifest.json`
+
+A catalog may say where it came from. `from_dir()` reads an optional
+`manifest.json` from beside the catalog files and exposes it as
+`Catalogs.manifest`:
+
+```json
+{
+  "facilities": {
+    "source": "Kenya Master Health Facility List",
+    "vintage": "2025 Q1",
+    "licence": "Open Government Licence",
+    "url": "https://example.gov.ke/mfl",
+    "retrieved": "2025-03-14"
+  }
+}
+```
+
+- **It is keyed by catalog kind** — `facilities`, `appliances`, `loggers` —
+  because provenance genuinely differs between them: a country brings its own
+  facility list but keeps the packaged WHO PQS equipment catalogs. A top-level
+  key that is not one of the three is an error.
+- **The fields are a convention, not a schema.** `source`, `vintage`, `licence`,
+  `url`, `retrieved` and `citation` are what this project uses; the loader
+  neither requires them nor rejects others, and never interprets a value. A
+  licence here is a string a human reads, not a controlled term. Add your own
+  fields — a `contact`, your own terms — and they survive.
+- **It is entirely optional**, and its absence is silent: no warning, no log
+  line. Most third-party catalogs will not have one.
+- **It describes only the catalogs you actually supplied.** A manifest entry for
+  a catalog with no file in the directory is an error — otherwise the packaged
+  default appliances would be labelled with someone else's provenance. Kinds
+  that fell back report the *packaged* provenance instead, so `from_dir()` on a
+  directory holding only facilities still reports the WHO PQS origin of the
+  appliances it did not replace.
+- The name is matched case-insensitively (`Manifest.json` is found), and two
+  manifests in one directory is an error.
+- **The packaged catalogs carry theirs in code**, since they are literals rather
+  than files: `Catalogs().manifest['facilities']['source']` says the sample
+  facilities are synthetic, and `Catalogs.builtin('nigeria-sokoto')` carries the
+  GRID3 v2.0 citation its CC BY 4.0 licence requires.
+
+A manifest can also be passed straight to the constructor alongside records in
+hand:
+
+```python
+Catalogs(facilities=rows, manifest={'facilities': {'source': 'Our own export'}})
+```
+
+### Worked example: a small custom catalog
+
+A three-facility Kenyan catalog, with its own equipment list and its own join
+keys, falling back to the packaged loggers.
+
+`ke-catalog/facilities.csv` — spreadsheet headers, straight out of a registry
+export, plus an OpenLMIS id the loader does not recognize and keeps anyway:
+
+```csv
+Facility Name,ISO,state,Lat,Long,openlmis_id
+Kericho County Referral Hospital,KEN,Kericho,-0.3689,35.2861,OLMIS-1041
+Londiani Sub-County Hospital,KEN,Kericho,-0.1656,35.5906,OLMIS-1042
+Kisumu East DVS,KEN,Kisumu,-0.0917,34.7680,OLMIS-2213
+```
+
+`ke-catalog/appliances.json` — plain key spelling, plus an asset tag:
+
+```json
+[
+  {
+    "pqs_code": "E003/007",
+    "manufacturer": "Vestfrost Solutions",
+    "model": "MK 304",
+    "type": "Icelined refrigerator",
+    "power_type": "mains",
+    "asset_tag": "KE-CCE-0001"
+  },
+  {
+    "pqs_code": "E003/030",
+    "manufacturer": "B Medical Systems Sarl",
+    "model": "TCW 3000 SDD",
+    "type": "Solar direct drive refrigerator",
+    "power_type": "solar",
+    "asset_tag": "KE-CCE-0002"
+  }
+]
+```
+
+`ke-catalog/manifest.json` — describing only the two catalogs the directory
+actually supplies:
+
+```json
+{
+  "facilities": {
+    "source": "Kenya Master Health Facility List",
+    "vintage": "2025 Q1",
+    "licence": "Open Government Licence",
+    "url": "https://example.gov.ke/mfl",
+    "retrieved": "2025-03-14"
+  },
+  "appliances": {
+    "source": "National cold chain inventory export",
+    "retrieved": "2025-03-14"
+  }
+}
+```
+
+There is no `loggers` file, so the packaged loggers stay — and report their own
+provenance.
+
+```python
+import datetime as dt
+from ccesim.catalogs import Catalogs
+from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice
+
+catalogs = Catalogs.from_dir('./ke-catalog')
+print(catalogs)
+# Catalogs(facilities=3, appliances=2, loggers=3)
+
+# Spreadsheet headers folded; coordinates are floats; join keys kept.
+print(catalogs.facilities[0]['facility_name'], catalogs.facilities[0]['latitude'])
+# Kericho County Referral Hospital -0.3689
+print(catalogs.facilities[0]['openlmis_id'])
+# OLMIS-1041
+
+# Plain keys stored in the PQS-style form; asset_tag rides along.
+print(catalogs.appliances[0]['APQS'], catalogs.appliances[0]['AMOD'])
+# E003/007 MK 304
+print(catalogs.appliances[0]['asset_tag'])
+# KE-CCE-0001
+
+# The loggers fell back, so they report the packaged provenance.
+print(catalogs.manifest['loggers']['source'])
+# Three remote temperature monitoring devices sampled from the WHO PQS ...
+
+config = MonitoringDeviceConfig(
+    type='ems', upload_interval=3600, sample_interval=900, catalogs=catalogs,
+)
+report = BaseRtmDevice(config).create_report(report_time=dt.datetime(2024, 6, 15, 12, 0))
+print(len(report.records))
+# 4
+```
+
+Or with no code change at all:
+
+```bash
+CCESIM_CATALOG_DIR=./ke-catalog python3 your_script.py
+```
+
 ## Injecting anomalies
 
 ```python

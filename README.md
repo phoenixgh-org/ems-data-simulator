@@ -90,6 +90,54 @@ cd js && npm test
 
 See **[README_JAVASCRIPT.md](README_JAVASCRIPT.md)** for the full API reference.
 
+## Facility and equipment catalogs
+
+Every simulated device is drawn from three catalogs: a **facility** (its
+coordinates drive the ambient and solar models), an **appliance** (the fridge or
+freezer), and a **logger**. The packaged default is a small illustrative sample
+— seven synthetic facilities spanning 27°N to 26°S, six appliances, three
+loggers — sized to demonstrate the simulator, **not** to describe any country's
+real estate. Bring your own by pointing the simulator at a catalog directory:
+
+```
+ke-catalog/
+├── facilities.csv     # or facilities.json
+├── appliances.json    # or appliances.csv
+├── loggers.json       # or loggers.csv
+└── manifest.json      # optional: where each catalog came from
+```
+
+Each catalog is an array of records — a JSON array of objects, or a CSV with a
+header row. A catalog with no file falls back to the packaged default, so a
+country that has only its own facility list keeps the packaged WHO PQS
+equipment catalogs.
+
+| Catalog | Required fields | Common optional fields |
+|---|---|---|
+| `facilities` | `iso`, `latitude`, `longitude` | `facility_name`, `country`, `state`, `lga`, `ward`, `ownership`, `facility_level`, `nhfr_uid`, … |
+| `appliances` | `APQS`, `AMFR`, `AMOD`, `type` | `power_type` (`solar` or `mains`) |
+| `loggers` | `LPQS`, `LMFR`, `LMOD`, `type` | — |
+
+Field names are normalized on load, so an unmodified WHO PQS export and a
+country's own spreadsheet both drop straight in: `pqs_code`/`manufacturer`/
+`model` are accepted for the `APQS`/`AMFR`/`AMOD` (and `LPQS`/`LMFR`/`LMOD`)
+forms, `Facility Name`, `Lat` and `Long` are accepted for `facility_name`,
+`latitude` and `longitude`, and case, spaces and hyphens are folded. Columns the
+loader does not recognize ride along untouched, so your own join keys survive.
+
+Validation happens at load and is loud: a facility with no latitude fails
+naming the file and the row, rather than reaching the thermal model as a `None`.
+
+Catalog field names are **snake_case in both implementations**. A catalog file
+is configuration, not API surface: the Python API is snake_case and the
+JavaScript API is camelCase, but the field names inside a catalog file are not
+camelCased on the JS side, so one file can be read by both ports without a
+translation layer.
+
+See **[README_PYTHON.md](README_PYTHON.md#facility-and-equipment-catalogs)** for
+the full field reference, the `CCESIM_CATALOG_DIR` environment variable, the
+provenance manifest, and a complete worked example.
+
 ## Architecture
 
 ```
