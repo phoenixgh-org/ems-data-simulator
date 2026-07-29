@@ -149,6 +149,31 @@ See **[README_PYTHON.md](README_PYTHON.md#facility-and-equipment-catalogs)** for
 the full field reference, the `CCESIM_CATALOG_DIR` environment variable, the
 provenance manifest, and a complete worked example.
 
+### Data sources and attribution
+
+The packaged default facilities are **synthetic** — seven illustrative points
+chosen to span a range of climates. They describe no real facility and need no
+attribution. The packaged appliance and logger catalogs are drawn from the
+public WHO PQS prequalified equipment catalogues (E003 and E006).
+
+One builtin ships **real** data: `Catalogs.builtin('nigeria-sokoto')` is the 46
+Sokoto State records of GRID3 NGA - Health Facilities v2.0, reproduced verbatim.
+That dataset is published under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0) — unrestricted use,
+commercial included, on the single condition that you attribute it. If you use
+or redistribute anything derived from that builtin, cite:
+
+> Center for Integrated Earth System Information (CIESIN), Columbia University.
+> 2024. GRID3 NGA - Health Facilities v2.0. New York: GRID3.
+> https://doi.org/10.7916/kv1n-0743
+
+Copyright 2024 The Trustees of Columbia University in the City of New York. The
+same source, vintage, licence and citation are carried in code on that catalog's
+provenance manifest (`ccesim/catalogs.py`), so the obligation travels with the
+data; see
+[README_PYTHON.md](README_PYTHON.md#facility-and-equipment-catalogs) for how to
+keep it attached when you compose catalogs by hand.
+
 ## Architecture
 
 ```
@@ -297,6 +322,11 @@ receiving countries increasingly run on.
 
 See **[fhir/README.md](fhir/README.md)** for the mapping options, the transform,
 and the roadmap.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and feature requests go to
+GitHub Issues.
 
 ## License
 
