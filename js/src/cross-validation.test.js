@@ -711,6 +711,12 @@ json.dump({kind: getattr(catalogs, kind) for kind in CATALOG_KINDS}, sys.stdout)
  * The fixture catalog as the Python loader sees it, or `null` when there is no
  * Python interpreter to ask. A Python that runs but fails is an error, not a
  * skip -- that is the divergence this test exists to catch.
+ *
+ * Call this from `beforeAll`, never at module scope. Because it throws, calling
+ * it while the module is being collected aborts collection of the whole file,
+ * and vitest reports `(0 test)` -- every unrelated cross-validation test in this
+ * file disappears along with the parity block. Inside `beforeAll` the same throw
+ * reddens only the suite that registered it.
  */
 function pythonCatalogRecords() {
   const python = process.env.CCESIM_PYTHON ?? "python3";
@@ -749,19 +755,33 @@ const fieldsOf = (records, fields) =>
     Object.fromEntries(fields.map((field) => [field, record[field] ?? null])),
   );
 
-const pythonRecords = pythonCatalogRecords();
-
-describe.skipIf(pythonRecords === null)("catalog parity with Python", () => {
+describe("catalog parity with Python", () => {
   let jsRecords;
+  let pythonRecords;
 
   beforeAll(() => {
+    // Both loads happen here rather than at module scope so that a Python which
+    // runs and fails -- no `ccesim` on the import path, a broken venv, a missing
+    // dependency -- fails this suite instead of the entire file. The rule itself
+    // is unchanged: only a missing interpreter is a skip.
+    pythonRecords = pythonCatalogRecords();
     const catalogs = fromDir(CATALOG_FIXTURE_DIR);
     jsRecords = Object.fromEntries(
       CATALOG_KINDS.map((kind) => [kind, catalogs.records(kind)]),
     );
   });
 
-  it("both ports load the same number of records", () => {
+  /**
+   * Skip the calling test when there is no Python interpreter on this machine.
+   * `describe.skipIf` cannot do this any more: whether Python exists is only
+   * known once `beforeAll` has run, and suites are marked skipped at collection.
+   */
+  const requirePython = (ctx) => {
+    if (pythonRecords === null) ctx.skip("no Python interpreter to compare against");
+  };
+
+  it("both ports load the same number of records", (ctx) => {
+    requirePython(ctx);
     const counts = (records) =>
       Object.fromEntries(CATALOG_KINDS.map((kind) => [kind, records[kind].length]));
     expect(counts(jsRecords)).toEqual(counts(pythonRecords));
@@ -773,14 +793,16 @@ describe.skipIf(pythonRecords === null)("catalog parity with Python", () => {
 
   for (const kind of CATALOG_KINDS) {
     describe(kind, () => {
-      it("normalized key sets match record for record", () => {
+      it("normalized key sets match record for record", (ctx) => {
+        requirePython(ctx);
         // Every accepted spelling must resolve to the same stored key in both
         // ports. This is the assertion that fails when a normalization rule is
         // changed on one side only.
         expect(keySets(jsRecords[kind])).toEqual(keySets(pythonRecords[kind]));
       });
 
-      it("the fields the simulator reads match", () => {
+      it("the fields the simulator reads match", (ctx) => {
+        requirePython(ctx);
         // Values, not just key names: a coordinate that stays a string in one
         // port is a divergence too.
         const fields = COMPARED_FIELDS[kind];
@@ -789,7 +811,8 @@ describe.skipIf(pythonRecords === null)("catalog parity with Python", () => {
         );
       });
 
-      it("every normalized record matches", () => {
+      it("every normalized record matches", (ctx) => {
+        requirePython(ctx);
         // The catch-all: unrecognized keys ride along untouched in both ports,
         // and any field either port keeps that the assertions above do not name
         // is still covered.
@@ -798,7 +821,8 @@ describe.skipIf(pythonRecords === null)("catalog parity with Python", () => {
     });
   }
 
-  it("both ports coerce coordinates to numbers", () => {
+  it("both ports coerce coordinates to numbers", (ctx) => {
+    requirePython(ctx);
     // Equality alone would not catch both ports leaving a coordinate written as
     // a string alone, which reaches the models as nonsense.
     for (const records of [jsRecords.facilities, pythonRecords.facilities]) {
@@ -809,7 +833,9 @@ describe.skipIf(pythonRecords === null)("catalog parity with Python", () => {
     }
   });
 
-  it("the fixture still exercises normalization", () => {
+  it("the fixture still exercises normalization", (ctx) => {
+    // Guards the parity assertions above, so it skips with them.
+    requirePython(ctx);
     // Parity over a fixture written entirely in stored-form keys would prove
     // nothing.
     for (const kind of CATALOG_KINDS) {
