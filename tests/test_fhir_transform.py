@@ -46,15 +46,27 @@ def test_abst_rejects_non_basic_format():
 def ems_bundle():
     """A real simulator EMS transmission -> Bundle.
 
-    Compressor failure at +2h with the icebank intact; the 9-day horizon lets the
-    ~9-day holdover exhaust so a HEAT alarm (TVC>8 C for 10h) arises naturally --
-    no thermal-config hacks. ~4s to generate + transform.
+    Compressor failure at +2h with the icebank intact, under a pinned hot
+    ambient, so the holdover reserve exhausts around day 6.3-6.6 and a HEAT
+    alarm (TVC>8 C for 10h) arises naturally, ~2.5 days inside the 9-day
+    horizon. ~4s to generate + transform.
+
+    The ambient mean has to be pinned. BaseRtmDevice draws a random facility
+    and default_config() derives the ambient profile from that facility's
+    latitude, so a sub-tropical draw (|lat| ~26-28 -> ~19 C mean) leaves TVC
+    peaking near +5..+7 C: the icebank outlasts the horizon and no HEAT alarm
+    is ever raised. That is what made test_coded_alarm_observations_present
+    fail on ~40% of runs (ccesim-l2c). Fixing the ambient forces the alarm
+    condition outright rather than pinning an RNG seed, which would stay
+    hostage to the generator's call order.
     """
     horizon_s = 9 * 24 * 3600
     cfg = MonitoringDeviceConfig(type="ems", upload_interval=horizon_s, sample_interval=900)
     device = BaseRtmDevice(cfg)
     device.sim_config.fault.fault_type = FaultType.COMPRESSOR_FAILURE
     device.sim_config.fault.fault_start_offset_s = 2 * 3600
+    # Hot-climate ambient (see docstring): the flake source, not a tuning knob.
+    device.sim_config.ambient.T_mean = 32.0
 
     start = dt.datetime(2024, 6, 15, 0, 0, 0)
     report = device.create_report(report_time=start + dt.timedelta(seconds=horizon_s))
