@@ -1,0 +1,21 @@
+[
+  {
+    "LPQS": "E006/000-EXAMPLE-1",
+    "LMFR": "Example Telemetry Ltd",
+    "LMOD": "LX-10",
+    "type": "Remote temperature monitoring device"
+  },
+  {
+    "pqs_code": "E006/000-EXAMPLE-2",
+    "manufacturer": "Example Telemetry Ltd",
+    "model": "LX-20",
+    "device_type": "Remote temperature monitoring device",
+    "firmware_channel": "stable"
+  },
+  {
+    "LPQS": "E006/000-EXAMPLE-3",
+    "Manufacturer": "Example Sensors Inc",
+    "Model": "LX-30",
+    "Logger Type": "Remote temperature monitoring device"
+  }
+]

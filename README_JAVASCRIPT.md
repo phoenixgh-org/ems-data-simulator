@@ -135,6 +135,130 @@ config.fault = new FaultConfig({
 });
 ```
 
+## Catalogs
+
+A catalog is a country's own list of facilities, appliances and loggers. **The
+same files feed both implementations** — the field names inside a catalog file
+are configuration, so they stay `snake_case` (and PQS-style `APQS`/`LMFR`) here
+exactly as they are in Python, and no translation layer sits between the two.
+The format itself — required fields, accepted key spellings, resolution order,
+worked examples — is documented once, in [README_PYTHON.md](README_PYTHON.md).
+This section covers only what the JavaScript port does differently.
+
+### In the browser: `Catalogs.fromJSON()`
+
+`Catalogs` lives in `js/src/catalogs.js`, which imports nothing at all — no
+dependencies and no Node built-ins — so bundling `index.js` for a browser never
+drags a filesystem module in behind it. It takes records already in hand:
+
+```javascript
+import { Catalogs } from './src/index.js';
+
+// Records fetched, bundled, or built at runtime
+const catalogs = new Catalogs({
+  facilities: [{ iso: 'NGA', name: 'Example Central Hospital', lat: 13.06, lon: 5.25 }],
+  appliances: [{ pqs_code: 'E003/040', manufacturer: 'Aucma', model: 'CFD-50', type: 'Icelined refrigerator' }],
+});
+
+catalogs.facilities[0].facility_name;  // 'Example Central Hospital' — keys normalized on load
+catalogs.facilities[0].latitude;       // 13.06 — coordinates coerced to numbers
+catalogs.loggers;                      // null — nothing supplied, nothing to fall back to
+```
+
+`Catalogs.fromJSON()` reads one bundled object instead — the shape to `fetch()`
+a whole catalog as a single file. It is the three catalog arrays under their
+kind names, plus the optional `manifest`:
+
+```javascript
+const response = await fetch('/catalog.json');
+const catalogs = Catalogs.fromJSON(await response.text(), { source: 'catalog.json' });
+```
+
+`source` is only used in error messages; pass the filename so a bad record
+names something the user can find.
+
+### In Node: the `catalogs-node` subpath
+
+Reading catalog *files* needs `fs`, which the browser-safe core will not
+import. That lives in a separate module with its own export subpath, so it is
+only loaded by code that asks for it:
+
+```javascript
+import { fromDir, fromFiles } from 'ems-data-simulator/catalogs-node';
+
+const catalogs = fromDir('./ke-catalog');           // facilities/appliances/loggers.json
+const facilities = fromFiles({ facilities: './hfr_export.json' });
+```
+
+`fromDir()` matches filenames case-insensitively, refuses two files claiming
+the same catalog, and picks up a `manifest.json` beside them as
+`catalogs.manifest`. Deliberately **not** re-exported from `index.js`.
+
+### Two deliberate asymmetries with Python
+
+**JSON only.** Python reads both `.json` and `.csv`, because a country's
+facility list usually comes out of an HFR or OpenLMIS as a spreadsheet.
+JavaScript reads `.json` and nothing else: parsing CSV correctly means a
+runtime dependency, and `seedrandom` is the entire production budget. A `.csv`
+catalog is reported as unsupported rather than skipped —
+
+```
+facilities.csv: .csv catalogs are not supported by the JavaScript port;
+convert it to facilities.json (the Python implementation reads both)
+```
+
+— because silently loading someone else's facilities instead of your own is
+the failure the loud loader exists to prevent. Convert the file once with the
+Python side, or with any CSV-to-JSON tool; the JSON both ports then read is
+identical.
+
+**No packaged defaults.** Python falls back to catalogs packaged with the
+`ccesim` distribution, so `Catalogs()` always holds all three kinds. The JS
+port ships no facility or equipment data, so a kind that was not supplied stays
+`null` (`catalogs.records(kind)` gives `[]` if you want a safe empty list).
+Supply the kinds you need.
+
+Everything else matches: keys are normalized on load, both spellings are
+accepted (`APQS` and `pqs_code`, `LMFR` and `manufacturer`, `lat` and
+`latitude`) along with case and spacing variants, unrecognized keys ride along
+untouched so your own join columns survive, and validation is loud and happens
+at load time, naming the file and the record:
+
+```
+./ke-catalog/facilities.json record 2: facility record is missing required
+field 'latitude' (also accepted as 'lat')
+```
+
+`js/fixtures/catalog/` is a small catalog directory that both ports load and
+agree on, record for record; it is what the cross-implementation parity test
+reads.
+
+### Feeding a device
+
+Catalogs are not yet wired into `MonitoringDeviceConfig` — there is no
+JavaScript equivalent of the Python `random_facility()` draw. Pick a record and
+pass its fields:
+
+```javascript
+import { MonitoringDeviceConfig } from './src/index.js';
+
+const facility = catalogs.facilities[0];
+const appliance = catalogs.appliances[0];
+
+const config = new MonitoringDeviceConfig({
+  type: 'ems',
+  uploadInterval: 3600,
+  sampleInterval: 900,
+  powerType: appliance.power_type ?? 'mains',
+  amfr: appliance.AMFR,
+  amod: appliance.AMOD,
+  apqs: appliance.APQS,
+  cid: facility.iso,
+  lat: facility.latitude,
+  lng: facility.longitude,
+});
+```
+
 ## Differences from the Python implementation
 
 | Aspect | Python | JavaScript |
@@ -143,8 +267,9 @@ config.fault = new FaultConfig({
 | PRNG | Mersenne Twister (`random.Random`) | ARC4 (`seedrandom`) |
 | Function naming | `snake_case` (`default_config`, `few_but_long`) | `camelCase` (`defaultConfig`, `fewButLong`) |
 | Config field naming | `snake_case` | `snake_case` — deliberately kept, see below |
-| Facility catalog | 7 illustrative facilities (27°N–26°S), pluggable | Not included — pass metadata via config |
-| Device catalog | 6 fridge models, 3 RTMDs, pluggable | Not included — pass metadata via config |
+| Catalog format | JSON **and** CSV | JSON only — a CSV parser would be a new runtime dependency |
+| Packaged catalogs | 7 illustrative facilities, 6 appliances, 3 loggers, plus the `nigeria-sokoto` and `pqs-e003-full` builtins | None shipped — supply the catalogs you need, or pass metadata per device |
+| Catalog → device wiring | `MonitoringDeviceConfig` draws a facility, appliance and logger at random | Not yet — read a record from the catalog and pass its fields to `MonitoringDeviceConfig` yourself |
 | Load testing | Locust integration | Not included |
 | Notebooks | Jupyter examples with plots | Not included |
 
@@ -240,7 +365,8 @@ js/
 │   ├── power_outage.json        Reference fixture (24 records)
 │   ├── compressor_failure.json  Reference fixture (24 records)
 │   ├── icebank_unit.json        Reference fixture (96 records)
-│   └── busy_facility.json       Reference fixture (24 records)
+│   ├── busy_facility.json       Reference fixture (24 records)
+│   └── catalog/                 Catalog directory both ports load (parity test)
 └── src/
     ├── index.js                 Public API exports
     ├── config.js                Configuration classes + presets
@@ -251,6 +377,8 @@ js/
     ├── schemas.js               cce-interop 0.8.1 output format classes
     ├── device.js                Device wrapper + report generation
     ├── random.js                Seedable PRNG wrapper
+    ├── catalogs.js              Catalog loader (no imports — browser-safe)
+    ├── catalogs-node.js         fromDir/fromFiles, the only module using fs
     ├── *.test.js                Unit tests (co-located)
     └── cross-validation.test.js Behavioral validation vs Python fixtures
 ```

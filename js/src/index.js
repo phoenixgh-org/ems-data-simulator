@@ -44,3 +44,19 @@ export { FaultEffects, DoorEvent } from "./events.js";
 
 // Random
 export { SeededRandom } from "./random.js";
+
+// Catalogs (browser-safe core; file loading lives in ./catalogs-node.js,
+// which is reached through the "ems-data-simulator/catalogs-node" subpath so
+// that bundling this entry point never drags in a Node filesystem module)
+export {
+  Catalogs,
+  CATALOG_KINDS,
+  MANIFEST_FILENAME,
+  MANIFEST_FIELDS,
+  FACILITY_ALIASES,
+  APPLIANCE_ALIASES,
+  LOGGER_ALIASES,
+  REQUIRED_FIELDS,
+  normalizeCatalogKey,
+  validateManifest,
+} from "./catalogs.js";

@@ -1,0 +1,18 @@
+{
+  "facilities": {
+    "source": "Synthetic. Invented \"Example ...\" facilities at four plausible cold chain latitudes (13N to 26S); no real health facility is named.",
+    "vintage": "2026",
+    "licence": "MIT, as part of this package",
+    "url": "https://github.com/phoenixgh-org/ems-data-simulator"
+  },
+  "appliances": {
+    "source": "Synthetic. Invented appliances covering both power types; the PQS codes are placeholders and prequalify nothing.",
+    "vintage": "2026",
+    "licence": "MIT, as part of this package"
+  },
+  "loggers": {
+    "source": "Synthetic. Invented remote temperature monitoring devices; the PQS codes are placeholders and prequalify nothing.",
+    "vintage": "2026",
+    "licence": "MIT, as part of this package"
+  }
+}

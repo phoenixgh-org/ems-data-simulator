@@ -1,0 +1,24 @@
+[
+  {
+    "APQS": "E003/000-EXAMPLE-1",
+    "AMFR": "Example Cold Chain Co",
+    "AMOD": "EX-100",
+    "type": "Icelined refrigerator",
+    "power_type": "mains"
+  },
+  {
+    "pqs_code": "E003/000-EXAMPLE-2",
+    "manufacturer": "Example Solar Systems",
+    "model": "EX-S200",
+    "appliance_type": "Solar direct drive refrigerator",
+    "power_source": "Solar",
+    "asset_tag": "AST-77"
+  },
+  {
+    "PQS Code": "E003/000-EXAMPLE-3",
+    "Manufacturer": "Example Cold Chain Co",
+    "Model": "EX-300",
+    "Appliance Type": "Icelined refrigerator",
+    "Power-Type": "MAINS"
+  }
+]

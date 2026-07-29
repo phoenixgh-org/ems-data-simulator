@@ -1,0 +1,34 @@
+[
+  {
+    "iso": "NGA",
+    "country": "Nigeria",
+    "state": "Sokoto",
+    "facility_name": "Example Central Hospital",
+    "facility_level": "Secondary",
+    "latitude": 13.06,
+    "longitude": 5.25,
+    "local_cold_room_id": "CR-001"
+  },
+  {
+    "iso3": "KEN",
+    "name": "Example Sub-County Hospital",
+    "facility_code": "KE-0042",
+    "lat": -1.29,
+    "lon": 36.82
+  },
+  {
+    "ISO Code": "ETH",
+    "Facility Name": "Example Woreda Health Centre",
+    "Facility-Level": "Primary",
+    "Ownership Type": "Public",
+    "Latitude": "9.03",
+    "LONGITUDE": "38.74"
+  },
+  {
+    "country_code": "ZAF",
+    "facility": "Example District Clinic",
+    "geocoordinates_source": "SYNTHETIC_EXAMPLE",
+    "lat": -25.75,
+    "lng": 28.19
+  }
+]
