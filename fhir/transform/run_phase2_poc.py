@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -34,18 +35,39 @@ from fhir.resources.R4B.device import Device  # noqa: E402
 from fhir.resources.R4B.observation import Observation  # noqa: E402
 
 
+# Pins every draw this script makes, so the acceptance counts printed below are
+# the same on every run (this file is a CI gate). Two RNGs need it:
+#   * the module-level `random`, which MonitoringDeviceConfig draws the facility
+#     and the fridge model from (ccesim/device.py) and which the serial/AMID
+#     generators use -- there is no per-config seed parameter;
+#   * sim_config.random_seed, which the record generator otherwise fills from a
+#     fresh unseeded random.Random().
+# 101 is arbitrary but not lucky: see the ambient note in build_transmission().
+SEED = 101
+
+
 def build_transmission() -> dict:
     # Realistic holdover-exhaustion scenario: a compressor failure at +2h with the
     # icebank INTACT (default ~8.5 MJ, ~9 days of holdover autonomy). TVC stays
-    # near setpoint while the ice reserve discharges; once it exhausts (~day 7-8),
+    # near setpoint while the ice reserve discharges; once it exhausts (~day 6.5),
     # TVC rises to ambient and the HEAT alarm (TVC>8 C for 10h) fires naturally.
     # The 9-day horizon is long enough to capture that full arc -- which is why a
     # short run shows no alarm: the holdover hasn't run out yet, not a defect.
+    random.seed(SEED)
     horizon_s = 9 * 24 * 3600
     cfg = MonitoringDeviceConfig(type="ems", upload_interval=horizon_s, sample_interval=900)
     device = BaseRtmDevice(cfg)
+    device.sim_config.random_seed = SEED
     device.sim_config.fault.fault_type = FaultType.COMPRESSOR_FAILURE
     device.sim_config.fault.fault_start_offset_s = 2 * 3600
+    # Hot-climate ambient, same pin as the tests/test_fhir_transform.py fixture
+    # (ccesim-l2c). default_config() derives the ambient profile from the drawn
+    # facility's latitude, so a sub-tropical facility (|lat| ~26-28 -> ~19 C mean)
+    # leaves the icebank outlasting the horizon and no alarm is ever raised --
+    # measured here at 0 coded alarms for 2 of 9 candidate seeds. Pinning the
+    # ambient forces the alarm condition outright instead of leaving the gate
+    # hostage to which facility a given seed happens to draw.
+    device.sim_config.ambient.T_mean = 32.0
 
     start = dt.datetime(2024, 6, 15, 0, 0, 0)
     report = device.create_report(report_time=start + dt.timedelta(seconds=horizon_s))
