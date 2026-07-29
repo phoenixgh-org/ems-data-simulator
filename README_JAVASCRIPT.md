@@ -70,6 +70,33 @@ const report = device.createReport(new Date(Date.UTC(2024, 5, 15, 12, 0, 0)));
 console.log(report.toJSON());
 ```
 
+### Reported coordinates are deliberately jittered
+
+Every report adds a random offset of roughly 111 m (one sigma) to the `lat`/
+`lng` you configured, and emits the result as `LAT`/`LNG`. It is intentional —
+do not strip it as noise. It blurs the exact point of a facility that may be a
+real one, and it means successive reports from one device carry slightly
+different coordinates, as a real GPS fix would. This matches the Python
+implementation, which draws the same `gauss(0.00001, 0.001)` degree offset per
+axis in `Facility.get_nudged_coordinates()`.
+
+Three things follow:
+
+- The offset is **not** anonymisation. 111 m is still inside the compound, so
+  treat it as courtesy, not as a privacy control.
+- It is **report-only**. `device.lat` / `device.lng` and the config you passed
+  are never mutated, so anything rendering a fridge's position from your own
+  data is unaffected — only the emitted report moves.
+- It applies to **your** coordinates too. A facility read out of a `Catalogs`
+  record and passed to `MonitoringDeviceConfig` goes through the same path, so
+  reported coordinates will not match your registry exactly.
+
+The jitter is drawn from the device's own `SeededRandom` stream, seeded from
+`simConfig.random_seed`, so a seeded device stays fully deterministic. That
+stream is deliberately separate from the one `SimulatedRecordSet.generate` uses
+for measurements: emitting a coordinate never shifts a temperature. There is no
+switch to turn the jitter off in either implementation.
+
 ### Stateful continuity
 
 State persists between `generate()` calls via `SimulatorState`:
@@ -402,3 +429,17 @@ python3 js/fixtures/generate_fixtures.py
 ```
 
 Then re-run the JS tests to verify behavioral equivalence.
+
+### What cross-validation does *not* cover
+
+Cross-validation compares **records** — the per-interval measurements a
+`SimulatedRecordSet` produces — against Python-generated fixtures. The report
+**envelope** is out of its scope today: `LAT`, `LNG`, `CID`, `AMID`, `ASER`,
+`DLST` and the rest of the identity metadata are never generated into a fixture
+(`js/fixtures/generate_fixtures.py` builds configs, never a device), so no
+fixture can disagree about them and none does.
+
+This is a real gap, recorded here rather than left silent — it is how the
+coordinate-jitter divergence above survived unnoticed. Closing it is tracked as
+beads issue `ccesim-bcp`. Until then, envelope parity between the two
+implementations is held by each port's own unit tests, not by cross-validation.

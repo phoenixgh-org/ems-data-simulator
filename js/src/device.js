@@ -7,6 +7,15 @@
 import { SimulatedRecordSet, SimulatorState } from "./recordset.js";
 import { SimulationConfig, defaultConfig } from "./config.js";
 import { RtmdReport, EmsReport } from "./schemas.js";
+import { SeededRandom } from "./random.js";
+
+/**
+ * Per-report coordinate jitter, in degrees. Mirrors
+ * ccesim/facilities.py get_nudged_coordinates(), which draws
+ * random.gauss(0.00001, 0.001) per axis.
+ */
+const COORD_JITTER_MU = 0.00001;
+const COORD_JITTER_SIGMA = 0.001;
 
 // ---------------------------------------------------------------------------
 // Generator utilities (from ccesim/generator.py)
@@ -221,6 +230,46 @@ export class BaseRtmDevice {
     // Supplier-internal appliance monitoring id, minted once and held stable
     // across all reports this device produces.
     this.amid = randomAmid();
+
+    // RNG for the per-report coordinate jitter (see _nudgedCoordinates).
+    // Deliberately its OWN stream: the record stream is owned by
+    // SimulatedRecordSet.generate and is carried across reports in
+    // simulatorState.rng_state, so drawing coordinates from it would shift
+    // every measurement and break the cross-validation fixtures. Seeded from
+    // the simulation config so a seeded device stays fully deterministic.
+    this._coordRng = new SeededRandom(
+      this.simConfig.random_seed ?? Date.now(),
+    );
+  }
+
+  /**
+   * The configured facility coordinates with a small random offset applied.
+   * THIS IS THE ONLY COORDINATE PAIR THAT SHOULD REACH A REPORT.
+   *
+   * THE JITTER IS DELIBERATE -- do not remove it as noise. It mirrors the
+   * Python implementation's Facility.get_nudged_coordinates(): a
+   * gauss(0.00001, 0.001) degree offset per axis, about 111 m at one sigma,
+   * so the exact point of a facility that may be a real one is blurred. It
+   * does NOT anonymise it -- 111 m is still inside the compound. Treat it as
+   * courtesy, never as a privacy control.
+   *
+   * It is drawn afresh on every call, so successive reports from one device
+   * carry slightly different LAT/LNG, as a real GPS fix would. It never
+   * mutates this.lat / this.lng, so anything reading the device's configured
+   * position is unaffected.
+   *
+   * A coordinate that is not a finite number (the default is null) is passed
+   * through untouched, so an unset LAT/LNG stays unset rather than becoming a
+   * spurious point near the equator.
+   *
+   * @returns {{lat: number|null, lng: number|null}}
+   */
+  _nudgedCoordinates() {
+    const nudge = (v) =>
+      typeof v === "number" && Number.isFinite(v)
+        ? v + this._coordRng.gauss(COORD_JITTER_MU, COORD_JITTER_SIGMA)
+        : v;
+    return { lat: nudge(this.lat), lng: nudge(this.lng) };
   }
 
   /**
@@ -290,6 +339,8 @@ export class BaseRtmDevice {
     );
     this.simulatorState = recordset.state;
 
+    const nudgedCoordinates = this._nudgedCoordinates();
+
     const reportObj = {
       CID: this.cid,
       ADOP: this.adop,
@@ -309,8 +360,8 @@ export class BaseRtmDevice {
       LPQS: this.lpqs,
       LSER: this.lser,
       LSV: this.lsv,
-      LAT: this.lat,
-      LNG: this.lng,
+      LAT: nudgedCoordinates.lat,
+      LNG: nudgedCoordinates.lng,
     };
 
     let report;

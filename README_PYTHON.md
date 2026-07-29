@@ -94,6 +94,13 @@ to **your** facilities too — a list loaded through `Catalogs` or
 `CCESIM_CATALOG_DIR` goes through the same path, so reported coordinates will
 not match your registry exactly.
 
+The jitter is report-only: `Facility.latitude` and `Facility.longitude` are
+never mutated, only the emitted envelope moves. The JavaScript port applies the
+same offset with the same parameters (see
+[README_JAVASCRIPT.md](README_JAVASCRIPT.md)); the drawn values differ between
+the two because the PRNGs differ, but the behaviour does not. Neither
+implementation offers a switch to turn it off.
+
 ## Facility and equipment catalogs
 
 Every device is drawn from three catalogs — a **facility**, an **appliance** and

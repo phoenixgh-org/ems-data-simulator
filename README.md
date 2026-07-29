@@ -128,6 +128,15 @@ loader does not recognize ride along untouched, so your own join keys survive.
 Validation happens at load and is loud: a facility with no latitude fails
 naming the file and the row, rather than reaching the thermal model as a `None`.
 
+**Reported coordinates are deliberately jittered.** Both implementations add a
+fresh random offset of roughly 111 m (one sigma) to `LAT`/`LNG` on every
+report — it blurs the exact point of a facility that may be a real one, and
+makes successive reports vary as a real GPS fix would. It is not anonymisation,
+it never mutates the stored facility coordinates, and it applies to catalogs you
+supply, so reported coordinates will not match your registry exactly. See
+[README_PYTHON.md](README_PYTHON.md) and
+[README_JAVASCRIPT.md](README_JAVASCRIPT.md).
+
 Catalog field names are **snake_case in both implementations**. A catalog file
 is configuration, not API surface: the Python API is snake_case and the
 JavaScript API is camelCase, but the field names inside a catalog file are not

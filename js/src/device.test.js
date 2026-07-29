@@ -6,6 +6,7 @@ import {
   transferMetadata,
 } from "./device.js";
 import { RtmdReport, EmsReport, RtmdRecord } from "./schemas.js";
+import { defaultConfig } from "./config.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -277,6 +278,144 @@ describe("Sequential reports", () => {
 
     expect(Math.min(...allTvcs)).toBeGreaterThan(-10);
     expect(Math.max(...allTvcs)).toBeLessThan(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Reported coordinates
+//
+// Every report carries a fresh gauss(0.00001, 0.001) degree offset per axis,
+// mirroring ccesim/facilities.py get_nudged_coordinates(). These tests pin a
+// seed so nothing here is merely probable -- given the seed the values are
+// fixed -- and then assert only loose, order-of-magnitude bounds on top, so a
+// change of PRNG or of the draw order cannot make them flake.
+// ---------------------------------------------------------------------------
+
+const JITTER_SIGMA = 0.001; // degrees, ~111 m
+const COORD_SEED = 20260729;
+
+/** A device whose coordinate jitter is seeded, hence deterministic. */
+function makeSeededDevice(overrides = {}, type = "rtmd") {
+  const base = type === "ems" ? makeEmsConfig : makeConfig;
+  const cfg = base(overrides);
+  const simConfig = defaultConfig(cfg.powerType, cfg.lat ?? 0);
+  simConfig.random_seed = COORD_SEED;
+  cfg.simConfig = simConfig;
+  return new BaseRtmDevice(cfg);
+}
+
+/** N sequential reports, one per hour. */
+function sequentialReports(dev, n) {
+  const reports = [];
+  let t = new Date(REPORT_TIME);
+  for (let i = 0; i < n; i++) {
+    reports.push(dev.createReport(t));
+    t = new Date(t.getTime() + 3600_000);
+  }
+  return reports;
+}
+
+describe("Reported coordinates are jittered", () => {
+  it("LAT/LNG are offset from the configured coordinates", () => {
+    const dev = makeSeededDevice();
+    const report = dev.createReport(REPORT_TIME);
+
+    expect(report.LAT).not.toBe(dev.config.lat);
+    expect(report.LNG).not.toBe(dev.config.lng);
+    // Offset is of the right order: a fraction of a degree, not a degree.
+    expect(Math.abs(report.LAT - dev.config.lat)).toBeLessThan(
+      12 * JITTER_SIGMA,
+    );
+    expect(Math.abs(report.LNG - dev.config.lng)).toBeLessThan(
+      12 * JITTER_SIGMA,
+    );
+  });
+
+  it("EMS reports carry the jitter too", () => {
+    const dev = makeSeededDevice({}, "ems");
+    const report = dev.createReport(REPORT_TIME);
+
+    expect(report).toBeInstanceOf(EmsReport);
+    expect(report.LAT).not.toBe(dev.config.lat);
+    expect(report.LNG).not.toBe(dev.config.lng);
+    expect(Math.abs(report.LAT - dev.config.lat)).toBeLessThan(
+      12 * JITTER_SIGMA,
+    );
+    expect(Math.abs(report.LNG - dev.config.lng)).toBeLessThan(
+      12 * JITTER_SIGMA,
+    );
+  });
+
+  it("is drawn afresh for every report", () => {
+    const dev = makeSeededDevice();
+    const [a, b] = sequentialReports(dev, 2);
+
+    expect(a.LAT).not.toBe(b.LAT);
+    expect(a.LNG).not.toBe(b.LNG);
+  });
+
+  it("does not mutate the device's configured coordinates", () => {
+    const dev = makeSeededDevice();
+    sequentialReports(dev, 5);
+
+    expect(dev.lat).toBe(-1.3);
+    expect(dev.lng).toBe(36.8);
+    expect(dev.config.lat).toBe(-1.3);
+    expect(dev.config.lng).toBe(36.8);
+  });
+
+  it("offsets over many reports are all distinct and of the right scale", () => {
+    const dev = makeSeededDevice();
+    const n = 200;
+    const offsets = sequentialReports(dev, n).map(
+      (r) => r.LAT - dev.config.lat,
+    );
+
+    // Every report drew its own value.
+    expect(new Set(offsets).size).toBe(n);
+    // None of them is a degree-scale error, and none is the raw value.
+    for (const d of offsets) {
+      expect(Math.abs(d)).toBeLessThan(12 * JITTER_SIGMA);
+      expect(d).not.toBe(0);
+    }
+    // Spread is of order sigma, not 0 and not 1 degree. Wide bounds: with the
+    // seed pinned this is a fixed number, and 200 samples put the true value
+    // well inside.
+    const mean = offsets.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(
+      offsets.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1),
+    );
+    expect(sd).toBeGreaterThan(JITTER_SIGMA / 3);
+    expect(sd).toBeLessThan(JITTER_SIGMA * 3);
+  });
+
+  it("is deterministic under a fixed seed", () => {
+    const a = sequentialReports(makeSeededDevice(), 3).map((r) => r.LAT);
+    const b = sequentialReports(makeSeededDevice(), 3).map((r) => r.LAT);
+    expect(a).toEqual(b);
+  });
+
+  it("leaves unset coordinates unset rather than nudging null", () => {
+    const dev = makeSeededDevice({ lat: null, lng: null });
+    const report = dev.createReport(REPORT_TIME);
+
+    expect(report.LAT).toBeNull();
+    expect(report.LNG).toBeNull();
+  });
+
+  it("does not perturb the record stream", () => {
+    // The coordinate RNG is a separate stream: drawing a jittered LAT/LNG must
+    // not shift a single measurement. Same seed, same simulation config, only
+    // the presence of coordinates differs.
+    const mk = (lat, lng) => {
+      const simConfig = defaultConfig("mains", -1.3);
+      simConfig.random_seed = COORD_SEED;
+      return new BaseRtmDevice(makeConfig({ lat, lng, simConfig }));
+    };
+
+    const a = mk(-1.3, 36.8).createReport(REPORT_TIME).records.map((r) => r.TVC);
+    const b = mk(null, null).createReport(REPORT_TIME).records.map((r) => r.TVC);
+    expect(a).toEqual(b);
   });
 });
 

@@ -1,6 +1,9 @@
 import pytest
 import datetime as dt
+import random
+import statistics
 from ccesim.device import MonitoringDeviceConfig, BaseRtmDevice
+from ccesim.facilities import Facility
 from ccesim.schemas import RtmdReport, EmsReport
 
 
@@ -102,3 +105,101 @@ def test_tvc_in_range(ems_device, report_time):
     # Under normal operation TVC should stay roughly between -5 and 15
     assert all(tvc > -10 for tvc in all_tvcs), f"TVC too low: {min(all_tvcs)}"
     assert all(tvc < 20 for tvc in all_tvcs), f"TVC too high: {max(all_tvcs)}"
+
+
+# ---------------------------------------------------------------------------
+# Reported coordinates
+#
+# Facility.get_nudged_coordinates() adds a gauss(0.00001, 0.001) degree offset
+# per axis, drawn afresh for every report. The tests below pin the global RNG
+# so the values are fixed rather than merely probable, and then assert only
+# loose, order-of-magnitude bounds on top -- a change of draw order cannot make
+# them flake. The JS port mirrors this; see js/src/device.test.js.
+# ---------------------------------------------------------------------------
+
+JITTER_SIGMA = 0.001  # degrees, ~111 m
+
+
+@pytest.fixture
+def seeded_random():
+    """Pin the global RNG for the duration of a test, then restore it."""
+    state = random.getstate()
+    random.seed(20260729)
+    yield
+    random.setstate(state)
+
+
+@pytest.fixture
+def sited_facility():
+    return Facility({
+        'facility_name': 'Test Facility',
+        'iso': 'KEN',
+        'latitude': -1.3,
+        'longitude': 36.8,
+    })
+
+
+def _device(type, facility):
+    config = MonitoringDeviceConfig(
+        type=type,
+        upload_interval=3600,
+        sample_interval=900,
+        facility=facility,
+    )
+    return BaseRtmDevice(config)
+
+
+def _sequential_reports(device, report_time, n):
+    reports = []
+    t = report_time
+    for _ in range(n):
+        reports.append(device.create_report(report_time=t))
+        t += dt.timedelta(seconds=3600)
+    return reports
+
+
+@pytest.mark.parametrize('type', ['rtmd', 'ems'])
+def test_reported_coordinates_are_jittered(type, sited_facility, report_time, seeded_random):
+    """LAT/LNG are offset from the facility's stored coordinates."""
+    report = _device(type, sited_facility).create_report(report_time=report_time)
+
+    assert report.LAT != sited_facility.latitude
+    assert report.LNG != sited_facility.longitude
+    # Offset is of the right order: a fraction of a degree, not a degree.
+    assert abs(report.LAT - sited_facility.latitude) < 12 * JITTER_SIGMA
+    assert abs(report.LNG - sited_facility.longitude) < 12 * JITTER_SIGMA
+
+
+def test_coordinate_jitter_is_drawn_per_report(sited_facility, report_time, seeded_random):
+    """Successive reports from one device carry different coordinates."""
+    a, b = _sequential_reports(_device('rtmd', sited_facility), report_time, 2)
+
+    assert a.LAT != b.LAT
+    assert a.LNG != b.LNG
+
+
+def test_coordinate_jitter_does_not_mutate_the_facility(sited_facility, report_time, seeded_random):
+    """The jitter is report-only: Facility.latitude/longitude stay raw."""
+    device = _device('rtmd', sited_facility)
+    _sequential_reports(device, report_time, 5)
+
+    assert sited_facility.latitude == -1.3
+    assert sited_facility.longitude == 36.8
+    assert device.config.facility.latitude == -1.3
+    assert device.config.facility.longitude == 36.8
+
+
+def test_coordinate_jitter_scale(sited_facility, report_time, seeded_random):
+    """Every report draws its own offset, all of order sigma."""
+    n = 200
+    reports = _sequential_reports(_device('rtmd', sited_facility), report_time, n)
+    offsets = [r.LAT - sited_facility.latitude for r in reports]
+
+    assert len(set(offsets)) == n
+    assert all(abs(d) < 12 * JITTER_SIGMA for d in offsets)
+    assert all(d != 0 for d in offsets)
+
+    # Spread is of order sigma, not 0 and not a degree. Wide bounds: with the
+    # RNG pinned this is a fixed number, and 200 samples put it well inside.
+    sd = statistics.stdev(offsets)
+    assert JITTER_SIGMA / 3 < sd < JITTER_SIGMA * 3
