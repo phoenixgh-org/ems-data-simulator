@@ -27,6 +27,10 @@ from fhir.resources.R4B.bundle import Bundle  # noqa: E402
 from fhir.resources.R4B.device import Device  # noqa: E402
 from fhir.resources.R4B.observation import Observation  # noqa: E402
 
+# Every test here needs the optional install; `-m fhir` selects them, and
+# CCESIM_REQUIRE_FHIR makes their absence loud rather than a silent skip.
+pytestmark = pytest.mark.fhir
+
 
 @pytest.mark.parametrize("abst,expected", [
     ("20240103T172228Z", "2024-01-03T17:22:28Z"),

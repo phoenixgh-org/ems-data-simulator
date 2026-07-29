@@ -66,6 +66,7 @@ def test_detected_issue_shape():
     assert di["implicated"][0]["reference"].endswith("/Device/appliance-0")
 
 
+@pytest.mark.fhir
 def test_detected_issue_bundle_validates_r4b():
     """Structural R4B validation (skips if fhir.resources absent)."""
     pytest.importorskip("fhir.resources.R4B.bundle")

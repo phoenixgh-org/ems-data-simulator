@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from random import choices, gauss, random, randint
 from string import ascii_lowercase, digits
@@ -8,6 +10,28 @@ from gibberish import Gibberish
 
 gib = Gibberish()
 letters = ascii_lowercase + digits
+
+
+def pytest_configure(config):
+    '''Turn a missing `fhir.resources` into a loud failure when asked.
+
+    `fhir.resources` is optional to INSTALL but never optional to PASS. The
+    FHIR tests importorskip at module scope, so an environment without it still
+    exits 0 -- which is exactly how the flake in ccesim-l2c survived locally
+    while CI was catching it. Set CCESIM_REQUIRE_FHIR=1 (CI does) to assert the
+    dependency is really there before any test runs.
+    '''
+    if not os.environ.get('CCESIM_REQUIRE_FHIR'):
+        return
+    try:
+        import fhir.resources.R4B.bundle  # noqa: F401
+    except ImportError as exc:
+        raise pytest.UsageError(
+            'CCESIM_REQUIRE_FHIR is set, but fhir.resources is not installed, '
+            'so the FHIR tests would skip silently and the run would still '
+            'report green. Run `pipenv sync --dev` to install what '
+            'Pipfile.lock already pins.'
+        ) from exc
 
 def serial_number():
     return "".join(choices(letters, k=10))

@@ -42,8 +42,14 @@ jobs:
       - name: Install dependencies
         run: pipenv sync --dev
 
+      # CCESIM_REQUIRE_FHIR turns a missing `fhir.resources` into a hard error
+      # instead of a module-level skip. `pipenv sync --dev` above installs what
+      # Pipfile.lock pins, so this only fires if the lock and the FHIR tests
+      # have drifted apart -- the one case where a green run would be a lie.
       - name: Run test suite
         run: pipenv run pytest tests/ -q
+        env:
+          CCESIM_REQUIRE_FHIR: '1'
 
   js-tests:
     name: JavaScript tests

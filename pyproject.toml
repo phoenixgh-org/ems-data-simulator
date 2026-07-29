@@ -51,3 +51,13 @@ Specification = "https://docs.2to8.cc/cce-data-interop/overview/"
 
 [tool.setuptools.packages.find]
 include = ["ccesim*"]
+
+[tool.pytest.ini_options]
+# `-ra` reports skip reasons in the summary even under `-q`. Without it a stale
+# virtualenv reads as a clean green run: the FHIR tests importorskip at module
+# scope, and `317 passed, 2 skipped` looks indistinguishable from a full pass.
+# That is how the flake in ccesim-l2c survived locally.
+addopts = "-ra --strict-markers"
+markers = [
+    "fhir: needs the optional `fhir.resources` install (see CCESIM_REQUIRE_FHIR)",
+]
