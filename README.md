@@ -169,10 +169,10 @@ or redistribute anything derived from that builtin, cite:
 
 Copyright 2024 The Trustees of Columbia University in the City of New York. The
 same source, vintage, licence and citation are carried in code on that catalog's
-provenance manifest (`ccesim/catalogs.py`), so the obligation travels with the
+provenance manifest (`ccesim/catalogs.py`), so the citation stays next to the
 data; see
-[README_PYTHON.md](README_PYTHON.md#facility-and-equipment-catalogs) for how to
-keep it attached when you compose catalogs by hand.
+[README_PYTHON.md](README_PYTHON.md#facility-and-equipment-catalogs) for the
+`.manifest` API.
 
 ## Architecture
 

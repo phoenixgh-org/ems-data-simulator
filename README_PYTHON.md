@@ -294,40 +294,21 @@ list against the *sample* equipment, and `Catalogs.builtin('pqs-e003-full')` is
 the full equipment lists against the *sample* facilities. This is deliberate —
 it follows the same "anything not supplied falls back" rule as `from_dir()`.
 
-To reconstruct the full set the simulator used to ship as its default — 46
-Sokoto facilities, 96 appliances and 13 loggers together — compose the module
-literals directly:
+**Name several to layer them**, later names winning. To reconstruct the full
+set the simulator used to ship as its default — 46 Sokoto facilities, 96
+appliances and 13 loggers together — name both builtins:
 
 ```python
 from ccesim.catalogs import Catalogs
-from ccesim.facilities import nigeria_sokoto_facilities
-from ccesim.devicegroups import pqs_e003_fridges, pqs_e006_rtmds
 
-Catalogs(facilities=nigeria_sokoto_facilities,
-         appliances=pqs_e003_fridges, loggers=pqs_e006_rtmds)
-```
-
-Records passed in hand carry no provenance, so that object's `.manifest` is
-empty. The Sokoto facilities are CC BY 4.0 and their licence makes citing the
-source a condition of use, so if you redistribute anything derived from this
-composition, carry the provenance across too:
-
-```python
-sokoto = Catalogs.builtin('nigeria-sokoto').manifest
-equipment = Catalogs.builtin('pqs-e003-full').manifest
-
-catalogs = Catalogs(
-    facilities=nigeria_sokoto_facilities,
-    appliances=pqs_e003_fridges,
-    loggers=pqs_e006_rtmds,
-    manifest={
-        'facilities': sokoto['facilities'],
-        'appliances': equipment['appliances'],
-        'loggers': equipment['loggers'],
-    },
-)
+catalogs = Catalogs.builtin('nigeria-sokoto', 'pqs-e003-full')
 print(catalogs.manifest['facilities']['citation'])
 ```
+
+Layering keeps each catalog's provenance, which is why it is the way to combine
+builtins. Records handed to `Catalogs()` directly are yours, so that object's
+`.manifest` is empty by design — the loader will not invent provenance for
+records it did not package.
 
 ### Provenance: `manifest.json`
 

@@ -672,25 +672,50 @@ class Catalogs:
         })
 
     @classmethod
-    def builtin(cls, name='default'):
+    def builtin(cls, *names):
         '''
-        Load a named catalog packaged with the simulator.
+        Load one or more named catalogs packaged with the simulator.
 
             Catalogs.builtin('default')         # the illustrative sample
             Catalogs.builtin('nigeria-sokoto')  # 46 real Sokoto facilities
             Catalogs.builtin('pqs-e003-full')   # the whole PQS equipment list
 
         A builtin only replaces the catalogs it names; the rest stay the
-        packaged default. Each carries its provenance in `.manifest`.
+        packaged default. Name several to layer them, later names winning, so
+        the real facilities with the full equipment list is one call:
+
+            Catalogs.builtin('nigeria-sokoto', 'pqs-e003-full')
+
+        Each catalog carries its provenance in `.manifest`. Layering is the
+        supported way to combine builtins precisely because it keeps that
+        provenance: records handed to `Catalogs()` directly are the caller's
+        and get no manifest, by design.
         '''
-        if name not in BUILTIN_CATALOGS:
-            raise ValueError(
-                f"Unknown builtin catalog {name!r}: expected one of "
-                f"{', '.join(repr(n) for n in BUILTIN_CATALOGS)}"
-            )
-        return cls(
-            manifest=_BUILTIN_MANIFESTS.get(name), **_BUILTIN_RECORDS[name]
-        )
+        if not names:
+            names = ('default',)
+        records = {}
+        manifest = {}
+        for name in names:
+            if name not in BUILTIN_CATALOGS:
+                raise ValueError(
+                    f"Unknown builtin catalog {name!r}: expected one of "
+                    f"{', '.join(repr(n) for n in BUILTIN_CATALOGS)}"
+                )
+            supplied = _BUILTIN_RECORDS[name]
+            provenance = _BUILTIN_MANIFESTS.get(name) or {}
+            records.update(supplied)
+            # Provenance moves in lockstep with the records it describes: a
+            # later builtin that replaces a catalog replaces that catalog's
+            # citation too, and clears it if it carries none. Otherwise a
+            # future builtin without a manifest would silently inherit the
+            # previous one's attribution -- the wrong citation being worse
+            # than no citation.
+            for kind in supplied:
+                if kind in provenance:
+                    manifest[kind] = provenance[kind]
+                else:
+                    manifest.pop(kind, None)
+        return cls(manifest=manifest or None, **records)
 
     @classmethod
     def from_dir(cls, path):

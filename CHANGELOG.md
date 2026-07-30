@@ -50,6 +50,10 @@ specification, not by this project, and moves independently of these entries.
   catalog with no file falls back to the packaged default. An optional
   `manifest.json` records where each catalog came from, with licence and
   citation.
+- `Catalogs.builtin()` accepts several names and layers them, later names
+  winning — `Catalogs.builtin('nigeria-sokoto', 'pqs-e003-full')` is the real
+  facility list against the full equipment catalogue. Each catalog keeps its
+  own provenance, replacing what an earlier name contributed.
 - The Python side is installable: `pyproject.toml` declares the `ccesim`
   distribution, its runtime dependencies and its metadata, so `pip install -e .`
   works and `Pipfile` no longer restates dependencies.

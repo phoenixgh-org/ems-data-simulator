@@ -212,6 +212,36 @@ class TestBuiltinCatalogs:
         )
         assert config.facility.state == 'Sokoto'
 
+    def test_builtins_layer_when_several_are_named(self):
+        # The combination that used to need a hand-built manifest: real
+        # facilities with the full equipment list.
+        catalogs = Catalogs.builtin('nigeria-sokoto', 'pqs-e003-full')
+        assert len(catalogs.facilities) == 46
+        assert len(catalogs.appliances) == 96
+        assert len(catalogs.loggers) == 13
+
+    def test_layered_builtins_keep_every_citation(self):
+        # The whole point of layering rather than composing by hand.
+        catalogs = Catalogs.builtin('nigeria-sokoto', 'pqs-e003-full')
+        assert set(catalogs.manifest) == {'facilities', 'appliances', 'loggers'}
+        assert 'GRID3' in catalogs.manifest['facilities']['citation']
+        assert catalogs.manifest['appliances'] == (
+            Catalogs.builtin('pqs-e003-full').manifest['appliances']
+        )
+
+    def test_a_later_builtin_wins_and_takes_its_provenance_with_it(self):
+        # 'default' facilities are synthetic; naming them last must replace
+        # both the Sokoto records AND the GRID3 citation describing them.
+        catalogs = Catalogs.builtin('nigeria-sokoto', 'default')
+        assert len(catalogs.facilities) == len(facilities)
+        assert 'GRID3' not in catalogs.manifest['facilities']['source']
+        assert 'Synthetic' in catalogs.manifest['facilities']['source']
+
+    def test_an_unknown_name_is_rejected_even_beside_a_valid_one(self):
+        with pytest.raises(ValueError) as excinfo:
+            Catalogs.builtin('nigeria-sokoto', 'kenya-nairobi')
+        assert 'kenya-nairobi' in str(excinfo.value)
+
     def test_the_packaged_literals_are_not_mutated(self):
         before = [dict(record) for record in fridges]
         Catalogs()
