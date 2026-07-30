@@ -19,6 +19,31 @@ def test_metadata(transfer_metadata):
     assert 'callbackUrl' not in transfer_metadata
     assert 'transferCallbackUrl' not in transfer_metadata
 
+def test_schema_version_defaults_to_the_packaged_constant():
+    from ccesim.generator import transfer_metadata
+    from ccesim.schemas import SCHEMA_VERSION
+    # One source of truth: the model default and the generator must agree.
+    assert transfer_metadata()['schemaVersion'] == SCHEMA_VERSION
+    assert TransferMetadata(transferId='x').schemaVersion == SCHEMA_VERSION
+
+
+def test_schema_version_can_be_overridden():
+    from ccesim.generator import transfer_metadata
+    # Relabels the transmission; nothing else about the payload changes.
+    md = transfer_metadata(type='ems', schema_version='0.8.0')
+    assert md['schemaVersion'] == '0.8.0'
+    assert md['transferType'] == 'ems'
+    assert TransferMetadata(**md).schemaVersion == '0.8.0'
+
+
+def test_an_empty_schema_version_falls_back_to_the_default():
+    from ccesim.generator import transfer_metadata
+    from ccesim.schemas import SCHEMA_VERSION
+    # environ.get returns '' for a set-but-empty var; that must not reach the
+    # wire as an empty schemaVersion.
+    assert transfer_metadata(schema_version='')['schemaVersion'] == SCHEMA_VERSION
+
+
 def test_rtmd_samples(rtmd_samples):
     assert isinstance(rtmd_samples, list)
     assert len(rtmd_samples) == 10

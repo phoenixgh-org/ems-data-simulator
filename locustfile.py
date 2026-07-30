@@ -44,6 +44,13 @@ AUTH_HEADER = environ.get('AUTH_HEADER', 'x-api-key')
 AUTH_SCHEME = environ.get('AUTH_SCHEME', '')
 AUTH_TOKEN = environ.get('AUTH_TOKEN')
 
+# Declared cce-interop schema version. Unset = the version the simulator was
+# built against. This relabels the transmission ONLY; records are generated the
+# same way regardless, so pointing it at an older version does not make the
+# payload conform to that version (0.8.1 widened ACCD to 0-50 to match Annex 1,
+# so any run containing a mains outage fails 0.8.0's 0.01 minimum either way).
+SCHEMA_VERSION = environ.get('SCHEMA_VERSION') or None
+
 # Gzip request body (spec §1.6: optional, raw binary, never base64-wrapped).
 GZIP = environ.get('GZIP', '').strip().lower() in ('1', 'true', 'yes', 'on')
 
@@ -125,7 +132,9 @@ class CceDevice(HttpUser):
 
         report = self.report_queue.popleft()
 
-        md = transfer_metadata(type=self.device_type)
+        md = transfer_metadata(
+            type=self.device_type, schema_version=SCHEMA_VERSION
+        )
         tx = self.transfer_schema(
             data=[report],
             meta=TransferMetadata(**md),

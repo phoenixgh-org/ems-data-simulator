@@ -6,7 +6,7 @@
 
 import { SimulatedRecordSet, SimulatorState } from "./recordset.js";
 import { SimulationConfig, defaultConfig } from "./config.js";
-import { RtmdReport, EmsReport } from "./schemas.js";
+import { RtmdReport, EmsReport, SCHEMA_VERSION } from "./schemas.js";
 import { SeededRandom } from "./random.js";
 
 /**
@@ -49,15 +49,18 @@ export function randomAmid() {
  * @param {string|null} [callbackUrl] - Optional webhook URL. Per cce-interop the
  *   field is 'transferCallbackUrl' (non-nullable string); it is omitted entirely
  *   when no URL is supplied.
+ * @param {string|null} [schemaVersion] - Override the declared cce-interop
+ *   version; null keeps SCHEMA_VERSION. Relabels the transmission only -- the
+ *   records are generated the same way either way.
  * @returns {object}
  */
-export function transferMetadata(type = "rtmd", callbackUrl = null) {
+export function transferMetadata(type = "rtmd", callbackUrl = null, schemaVersion = null) {
   const obj = {
     transferId: crypto.randomUUID(),
     transferSrc: "org.nhgh",
     transferredAt: new Date(),
     transferType: type === "ems" ? "ems" : "rtm",
-    schemaVersion: "0.8.1",
+    schemaVersion: schemaVersion || SCHEMA_VERSION,
   };
   if (callbackUrl != null) {
     obj.transferCallbackUrl = callbackUrl;

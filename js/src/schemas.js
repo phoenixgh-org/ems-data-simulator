@@ -57,6 +57,18 @@ function stripUndefined(obj) {
 // TransferMetadata
 // ---------------------------------------------------------------------------
 
+/**
+ * The cce-interop schema version this simulator emits, declared once so the
+ * metadata class and `transferMetadata()` cannot drift apart.
+ *
+ * Overriding it changes the LABEL on the wire, not the payload. The versions
+ * are not freely interchangeable: 0.8.1 widened ACCD to 0-50 to match Annex 1,
+ * so a run containing a mains outage (ACCD = 0) does not validate against
+ * 0.8.0's 0.01 minimum however it is labelled.
+ * @type {string}
+ */
+export const SCHEMA_VERSION = '0.8.1';
+
 export class TransferMetadata {
   /**
    * @param {object} opts
@@ -64,7 +76,7 @@ export class TransferMetadata {
    * @param {string} [opts.transferSrc='org.nhgh']
    * @param {Date}   [opts.transferredAt]
    * @param {'rtm'|'ems'} [opts.transferType='rtm']
-   * @param {string} [opts.schemaVersion='0.8.1']
+   * @param {string} [opts.schemaVersion=SCHEMA_VERSION]
    * @param {string|null} [opts.transferCallbackUrl]
    */
   constructor({
@@ -72,7 +84,7 @@ export class TransferMetadata {
     transferSrc = 'org.nhgh',
     transferredAt = new Date(),
     transferType = 'rtm',
-    schemaVersion = '0.8.1',
+    schemaVersion = SCHEMA_VERSION,
     transferCallbackUrl = null,
   }) {
     this.transferId = transferId;

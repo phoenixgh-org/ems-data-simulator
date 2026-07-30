@@ -4,6 +4,15 @@ from uuid import uuid4
 from typing_extensions import Annotated
 import datetime as dt
 
+#: The cce-interop schema version this simulator emits, declared once so the
+#: metadata model and `generator.transfer_metadata()` cannot drift apart.
+#:
+#: Overriding it changes the LABEL on the wire, not the payload. The versions
+#: are not freely interchangeable: 0.8.1 widened ACCD to 0-50 to match Annex 1,
+#: so a run containing a mains outage (ACCD = 0) does not validate against
+#: 0.8.0's 0.01 minimum however it is labelled.
+SCHEMA_VERSION = '0.8.1'
+
 # Custom datetime serialization for EMS-specific formats
 emsDateTime = Annotated[
     dt.datetime,
@@ -31,7 +40,7 @@ class TransferMetadata(BaseModel, arbitrary_types_allowed=True):
     transferSrc: str = 'org.nhgh'
     transferredAt: zuluDateTime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
     transferType: str = 'rtm'
-    schemaVersion: str = '0.8.1'
+    schemaVersion: str = SCHEMA_VERSION
     # cce-interop transmission-metadata names this 'transferCallbackUrl' and
     # types it as a non-nullable string, so it must be omitted (not null) when
     # absent. Serialization uses exclude_unset, so leaving it unset omits it.

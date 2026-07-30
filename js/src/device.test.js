@@ -5,7 +5,13 @@ import {
   randomSerial,
   transferMetadata,
 } from "./device.js";
-import { RtmdReport, EmsReport, RtmdRecord } from "./schemas.js";
+import {
+  RtmdReport,
+  EmsReport,
+  RtmdRecord,
+  TransferMetadata,
+  SCHEMA_VERSION,
+} from "./schemas.js";
 import { defaultConfig } from "./config.js";
 
 // ---------------------------------------------------------------------------
@@ -440,6 +446,25 @@ describe("transferMetadata", () => {
     const meta = transferMetadata("ems");
     expect(meta.transferType).toBe("ems");
     expect(meta.schemaVersion).toBe("0.8.1");
+  });
+
+  it("defaults to the packaged SCHEMA_VERSION constant", () => {
+    // One source of truth: the class default and the function must agree.
+    expect(transferMetadata("ems").schemaVersion).toBe(SCHEMA_VERSION);
+    expect(new TransferMetadata({ transferId: "x" }).schemaVersion).toBe(
+      SCHEMA_VERSION,
+    );
+  });
+
+  it("accepts a schemaVersion override", () => {
+    // Relabels the transmission; nothing else about the payload changes.
+    const meta = transferMetadata("ems", null, "0.8.0");
+    expect(meta.schemaVersion).toBe("0.8.0");
+    expect(meta.transferType).toBe("ems");
+  });
+
+  it("falls back to the default when the override is empty", () => {
+    expect(transferMetadata("ems", null, "").schemaVersion).toBe(SCHEMA_VERSION);
   });
 });
 
