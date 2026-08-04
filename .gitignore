@@ -171,18 +171,27 @@ CLAUDE.md
 # MacOS
 .DS_Store
 
-# Beads / Dolt files (added by bd init)
+# Beads — local-only issue tracker, deliberately NOT in git.
 #
-# NOTE: `.beads/` is deliberately NOT ignored wholesale. Beads is git-native --
-# `.beads/issues.jsonl` is the issue database and is meant to be committed, so
-# issue IDs referenced anywhere resolve for anyone who clones the repo.
-# `.beads/.gitignore` scopes this precisely: it keeps the Dolt database, the
-# federation credential key, per-machine sync state, and runtime logs out of
-# git. Do not re-add a blanket `.beads` entry here -- it would stop git
-# descending into the directory, and that nested .gitignore would never be read.
-.dolt/
+# Beads supports a git-native mode where `.beads/issues.jsonl` is committed so
+# issue IDs resolve for anyone who clones. This repo does not use it: bd is a
+# personal tool here, the issue database is carried between machines by
+# syncthing rather than by git, and the docs that reference bd at all
+# (CLAUDE.md, .claude/) are themselves ignored above. Committing the JSONL only
+# added export churn and merge conflicts for no reader.
+#
+# Consequences, so nobody is surprised:
+#   * `ccesim-*` IDs in commit messages are meaningful to the author but are
+#     not resolvable from a clone. Commit messages should therefore carry
+#     enough context to stand alone.
+#   * The beads git hooks in `.beads/hooks/` are intentionally NOT installed
+#     into `.git/hooks/` — their job was keeping the tracked JSONL in step with
+#     the database, which no longer needs to happen.
+#   * The Dolt database under `.beads/` is the source of truth; `issues.jsonl`
+#     is a regenerable export (`bd export -o .beads/issues.jsonl`).
+.beads/
+
 *.db
-.beads-credential-key
 
 # Internal-only documentation and scratchpads
 docs/internal
