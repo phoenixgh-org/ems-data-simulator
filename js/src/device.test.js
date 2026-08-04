@@ -11,6 +11,7 @@ import {
   RtmdRecord,
   TransferMetadata,
   SCHEMA_VERSION,
+  TRANSFER_SRC,
 } from "./schemas.js";
 import { defaultConfig } from "./config.js";
 
@@ -465,6 +466,35 @@ describe("transferMetadata", () => {
 
   it("falls back to the default when the override is empty", () => {
     expect(transferMetadata("ems", null, "").schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it("defaults to the packaged TRANSFER_SRC constant", () => {
+    // One source of truth: the class default and the function must agree, and
+    // with no override the wire value is unchanged from before this knob.
+    expect(TRANSFER_SRC).toBe("org.nhgh");
+    expect(transferMetadata("rtmd").transferSrc).toBe(TRANSFER_SRC);
+    expect(transferMetadata("ems").transferSrc).toBe("org.nhgh");
+    expect(new TransferMetadata({ transferId: "x" }).transferSrc).toBe(
+      TRANSFER_SRC,
+    );
+  });
+
+  it("accepts a transferSrc override", () => {
+    // Re-attributes the transmission; nothing else about the payload changes.
+    const meta = transferMetadata("ems", null, null, "com.mycompany");
+    expect(meta.transferSrc).toBe("com.mycompany");
+    expect(meta.transferType).toBe("ems");
+    expect(meta.schemaVersion).toBe(SCHEMA_VERSION);
+    // RTMD takes the same override.
+    const rtm = transferMetadata("rtmd", null, null, "com.mycompany");
+    expect(rtm.transferSrc).toBe("com.mycompany");
+    expect(rtm.transferType).toBe("rtm");
+  });
+
+  it("falls back to the default when the transferSrc override is empty", () => {
+    expect(transferMetadata("ems", null, null, "").transferSrc).toBe(
+      TRANSFER_SRC,
+    );
   });
 });
 

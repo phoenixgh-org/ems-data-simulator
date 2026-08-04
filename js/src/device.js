@@ -6,7 +6,12 @@
 
 import { SimulatedRecordSet, SimulatorState } from "./recordset.js";
 import { SimulationConfig, defaultConfig } from "./config.js";
-import { RtmdReport, EmsReport, SCHEMA_VERSION } from "./schemas.js";
+import {
+  RtmdReport,
+  EmsReport,
+  SCHEMA_VERSION,
+  TRANSFER_SRC,
+} from "./schemas.js";
 import { SeededRandom } from "./random.js";
 
 /**
@@ -52,12 +57,21 @@ export function randomAmid() {
  * @param {string|null} [schemaVersion] - Override the declared cce-interop
  *   version; null keeps SCHEMA_VERSION. Relabels the transmission only -- the
  *   records are generated the same way either way.
+ * @param {string|null} [transferSrc] - Override the data transmission source
+ *   (the URI identifying the data supplier the delivery is attributed to);
+ *   null keeps TRANSFER_SRC. Re-attributes the transmission only -- the
+ *   records are unchanged.
  * @returns {object}
  */
-export function transferMetadata(type = "rtmd", callbackUrl = null, schemaVersion = null) {
+export function transferMetadata(
+  type = "rtmd",
+  callbackUrl = null,
+  schemaVersion = null,
+  transferSrc = null,
+) {
   const obj = {
     transferId: crypto.randomUUID(),
-    transferSrc: "org.nhgh",
+    transferSrc: transferSrc || TRANSFER_SRC,
     transferredAt: new Date(),
     transferType: type === "ems" ? "ems" : "rtm",
     schemaVersion: schemaVersion || SCHEMA_VERSION,

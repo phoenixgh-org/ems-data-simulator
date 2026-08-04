@@ -51,6 +51,12 @@ AUTH_TOKEN = environ.get('AUTH_TOKEN')
 # so any run containing a mains outage fails 0.8.0's 0.01 minimum either way).
 SCHEMA_VERSION = environ.get('SCHEMA_VERSION') or None
 
+# Data transmission source (meta.transferSrc) — the URI identifying the data
+# supplier the delivery is attributed to. Unset = the simulator's own id.
+# This re-attributes the transmission ONLY; records are generated the same way
+# regardless. One value applies to the whole run, EMS and RTMD alike.
+TRANSFER_SRC = environ.get('TRANSFER_SRC') or None
+
 # Gzip request body (spec §1.6: optional, raw binary, never base64-wrapped).
 GZIP = environ.get('GZIP', '').strip().lower() in ('1', 'true', 'yes', 'on')
 
@@ -133,7 +139,9 @@ class CceDevice(HttpUser):
         report = self.report_queue.popleft()
 
         md = transfer_metadata(
-            type=self.device_type, schema_version=SCHEMA_VERSION
+            type=self.device_type,
+            schema_version=SCHEMA_VERSION,
+            transfer_src=TRANSFER_SRC,
         )
         tx = self.transfer_schema(
             data=[report],

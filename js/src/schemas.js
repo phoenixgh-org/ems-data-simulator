@@ -69,11 +69,24 @@ function stripUndefined(obj) {
  */
 export const SCHEMA_VERSION = '0.8.1';
 
+/**
+ * The data transmission source (cce-interop `meta.transferSrc`) this simulator
+ * declares, declared once so the metadata class and `transferMetadata()`
+ * cannot drift apart.
+ *
+ * It is the URI identifying the data supplier the transmission is attributed
+ * to; the schema takes any string (examples: 'com.mycompany',
+ * 'https://mycompany.com'). Overriding it changes only who the delivery claims
+ * to be from -- the records are generated the same way regardless.
+ * @type {string}
+ */
+export const TRANSFER_SRC = 'org.nhgh';
+
 export class TransferMetadata {
   /**
    * @param {object} opts
    * @param {string} opts.transferId
-   * @param {string} [opts.transferSrc='org.nhgh']
+   * @param {string} [opts.transferSrc=TRANSFER_SRC]
    * @param {Date}   [opts.transferredAt]
    * @param {'rtm'|'ems'} [opts.transferType='rtm']
    * @param {string} [opts.schemaVersion=SCHEMA_VERSION]
@@ -81,7 +94,7 @@ export class TransferMetadata {
    */
   constructor({
     transferId,
-    transferSrc = 'org.nhgh',
+    transferSrc = TRANSFER_SRC,
     transferredAt = new Date(),
     transferType = 'rtm',
     schemaVersion = SCHEMA_VERSION,

@@ -13,6 +13,16 @@ import datetime as dt
 #: 0.8.0's 0.01 minimum however it is labelled.
 SCHEMA_VERSION = '0.8.1'
 
+#: The data transmission source (cce-interop `meta.transferSrc`) this simulator
+#: declares, declared once so the metadata model and
+#: `generator.transfer_metadata()` cannot drift apart.
+#:
+#: It is the URI identifying the data supplier the transmission is attributed
+#: to; the schema takes any string (examples: 'com.mycompany',
+#: 'https://mycompany.com'). Overriding it changes only who the delivery claims
+#: to be from -- the records are generated the same way regardless.
+TRANSFER_SRC = 'org.nhgh'
+
 # Custom datetime serialization for EMS-specific formats
 emsDateTime = Annotated[
     dt.datetime,
@@ -37,7 +47,7 @@ zuluDateTime = Annotated[
 class TransferMetadata(BaseModel, arbitrary_types_allowed=True):
     """Transmission metadata for a CCE Data Delivery transfer (both EMS and RTM types)."""
     transferId: str
-    transferSrc: str = 'org.nhgh'
+    transferSrc: str = TRANSFER_SRC
     transferredAt: zuluDateTime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
     transferType: str = 'rtm'
     schemaVersion: str = SCHEMA_VERSION

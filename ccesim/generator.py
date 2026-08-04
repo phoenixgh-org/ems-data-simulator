@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 import pytz
 
-from ccesim.schemas import SCHEMA_VERSION
+from ccesim.schemas import SCHEMA_VERSION, TRANSFER_SRC
 
 
 def random_serial():
@@ -20,17 +20,23 @@ def random_amid():
     return uuid4().hex[:12]
 
 
-def transfer_metadata(type='rtmd', callback_url=None, schema_version=None):
+def transfer_metadata(type='rtmd', callback_url=None, schema_version=None,
+                      transfer_src=None):
     """Build the transmission metadata envelope.
 
     `schema_version` overrides the declared cce-interop version; None keeps the
     packaged default. It relabels the transmission only -- the records are
     still generated the same way -- so an employer system pinned to an older
     version may still reject the payload on its own merits.
+
+    `transfer_src` overrides the data transmission source (the URI identifying
+    the data supplier the delivery is attributed to); None keeps the packaged
+    default. It re-attributes the transmission only -- the records are
+    unchanged -- and one value applies to the whole run.
     """
     obj = {
         'transferId': str(uuid4()),
-        'transferSrc': 'org.nhgh',
+        'transferSrc': transfer_src or TRANSFER_SRC,
         'transferredAt': datetime.now(pytz.utc),
         'transferType': 'rtm',
         'schemaVersion': schema_version or SCHEMA_VERSION,

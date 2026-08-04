@@ -44,6 +44,38 @@ def test_an_empty_schema_version_falls_back_to_the_default():
     assert transfer_metadata(schema_version='')['schemaVersion'] == SCHEMA_VERSION
 
 
+def test_transfer_src_defaults_to_the_packaged_constant():
+    from ccesim.generator import transfer_metadata
+    from ccesim.schemas import TRANSFER_SRC
+    # One source of truth: the model default and the generator must agree, and
+    # with no override the wire value is unchanged from before this knob.
+    assert TRANSFER_SRC == 'org.nhgh'
+    assert transfer_metadata()['transferSrc'] == TRANSFER_SRC
+    assert transfer_metadata(type='ems')['transferSrc'] == 'org.nhgh'
+    assert TransferMetadata(transferId='x').transferSrc == TRANSFER_SRC
+
+
+def test_transfer_src_can_be_overridden():
+    from ccesim.generator import transfer_metadata
+    # Re-attributes the transmission; nothing else about the payload changes.
+    md = transfer_metadata(type='ems', transfer_src='com.mycompany')
+    assert md['transferSrc'] == 'com.mycompany'
+    assert md['transferType'] == 'ems'
+    assert TransferMetadata(**md).transferSrc == 'com.mycompany'
+    # RTMD takes the same override.
+    rtm = transfer_metadata(transfer_src='com.mycompany')
+    assert rtm['transferSrc'] == 'com.mycompany'
+    assert rtm['transferType'] == 'rtm'
+
+
+def test_an_empty_transfer_src_falls_back_to_the_default():
+    from ccesim.generator import transfer_metadata
+    from ccesim.schemas import TRANSFER_SRC
+    # environ.get returns '' for a set-but-empty var; that must not reach the
+    # wire as an empty transferSrc (the schema requires the field).
+    assert transfer_metadata(transfer_src='')['transferSrc'] == TRANSFER_SRC
+
+
 def test_rtmd_samples(rtmd_samples):
     assert isinstance(rtmd_samples, list)
     assert len(rtmd_samples) == 10
