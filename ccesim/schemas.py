@@ -21,7 +21,7 @@ SCHEMA_VERSION = '0.8.1'
 #: to; the schema takes any string (examples: 'com.mycompany',
 #: 'https://mycompany.com'). Overriding it changes only who the delivery claims
 #: to be from -- the records are generated the same way regardless.
-TRANSFER_SRC = 'org.nhgh'
+TRANSFER_SRC = 'org.phoenixgh'
 
 # Custom datetime serialization for EMS-specific formats
 emsDateTime = Annotated[

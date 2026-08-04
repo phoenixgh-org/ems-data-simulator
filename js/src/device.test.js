@@ -434,7 +434,7 @@ describe("transferMetadata", () => {
   it("returns correct structure for RTMD", () => {
     const meta = transferMetadata("rtmd");
     expect(meta.transferId).toBeDefined();
-    expect(meta.transferSrc).toBe("org.nhgh");
+    expect(meta.transferSrc).toBe("org.phoenixgh");
     expect(meta.transferType).toBe("rtm");
     expect(meta.schemaVersion).toBe("0.8.1");
     // transferCallbackUrl is omitted entirely when no webhook URL is supplied.
@@ -470,10 +470,11 @@ describe("transferMetadata", () => {
 
   it("defaults to the packaged TRANSFER_SRC constant", () => {
     // One source of truth: the class default and the function must agree, and
-    // with no override the wire value is unchanged from before this knob.
-    expect(TRANSFER_SRC).toBe("org.nhgh");
+    // the literal is pinned here so a change to the packaged source is a
+    // deliberate edit rather than a silent drift in what deliveries claim to be.
+    expect(TRANSFER_SRC).toBe("org.phoenixgh");
     expect(transferMetadata("rtmd").transferSrc).toBe(TRANSFER_SRC);
-    expect(transferMetadata("ems").transferSrc).toBe("org.nhgh");
+    expect(transferMetadata("ems").transferSrc).toBe("org.phoenixgh");
     expect(new TransferMetadata({ transferId: "x" }).transferSrc).toBe(
       TRANSFER_SRC,
     );

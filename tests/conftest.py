@@ -66,7 +66,7 @@ def rtmd_record(time=datetime.now(pytz.utc)):
 def transfer_metadata():
     obj = {
         'transferId': str(uuid4()),
-        'transferSrc': 'org.nhgh',
+        'transferSrc': 'org.phoenixgh',
         'transferredAt': datetime.now(pytz.utc),
         'transferType': 'rtm',
         'schemaVersion': '0.8.1',

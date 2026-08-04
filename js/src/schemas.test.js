@@ -47,7 +47,7 @@ describe('TransferMetadata', () => {
     const tm = new TransferMetadata({ transferId: 'abc-123' });
     const json = tm.toJSON();
     expect(json.transferId).toBe('abc-123');
-    expect(json.transferSrc).toBe('org.nhgh');
+    expect(json.transferSrc).toBe('org.phoenixgh');
     expect(json.transferType).toBe('rtm');
     expect(json.schemaVersion).toBe('0.8.1');
     expect(json).toHaveProperty('transferredAt');
@@ -329,7 +329,7 @@ describe('EmsTransfer', () => {
     });
     const json = transfer.toJSON();
     expect(json.meta.transferId).toBe('t-001');
-    expect(json.meta.transferSrc).toBe('org.nhgh');
+    expect(json.meta.transferSrc).toBe('org.phoenixgh');
     expect(json.data).toHaveLength(1);
     expect(json.data[0].CID).toBe('c');
   });

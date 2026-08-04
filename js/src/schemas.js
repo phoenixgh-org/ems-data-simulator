@@ -80,7 +80,7 @@ export const SCHEMA_VERSION = '0.8.1';
  * to be from -- the records are generated the same way regardless.
  * @type {string}
  */
-export const TRANSFER_SRC = 'org.nhgh';
+export const TRANSFER_SRC = 'org.phoenixgh';
 
 export class TransferMetadata {
   /**

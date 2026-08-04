@@ -566,7 +566,7 @@ During startup, each virtual user creates a `BaseRtmDevice`, pre-generates a que
 | `SIM_START` | `2024-06-15T00:00:00` | Simulated start date (ISO 8601) |
 | `START_JITTER_S` | `3600` | Max random offset per user's start time |
 | `SCHEMA_VERSION` | _(packaged version)_ | Declared cce-interop version in `meta.schemaVersion`. **Relabels the transmission only** — see below |
-| `TRANSFER_SRC` | `org.nhgh` | Data transmission source in `meta.transferSrc` — the URI identifying the data supplier the delivery is attributed to. **Re-attributes the transmission only** — see below |
+| `TRANSFER_SRC` | `org.phoenixgh` | Data transmission source in `meta.transferSrc` — the URI identifying the data supplier the delivery is attributed to. **Re-attributes the transmission only** — see below |
 
 `SCHEMA_VERSION` is for satisfying an employer system that gates on the version
 string. It does **not** re-target the payload at an older schema: the records
@@ -577,10 +577,11 @@ clamping it would mean reporting current draw during a power cut. Clean runs
 with no outage do validate against 0.8.0 unmodified.
 
 `TRANSFER_SRC` is for landing a load run under a supplier other than the
-simulator's own `org.nhgh` — an employer system that partitions or authorizes
-by data supplier will otherwise file every simulated delivery under NHGH. It
-changes the attribution only: the records are generated identically whatever
-the source says, and a single value covers the whole run, EMS and RTMD alike.
+simulator's own `org.phoenixgh` — an employer system that partitions or
+authorizes by data supplier will otherwise file every simulated delivery under
+PhoenixGH. It changes the attribution only: the records are generated
+identically whatever the source says, and a single value covers the whole run,
+EMS and RTMD alike.
 
 ### Delivery transport (CCE data delivery spec compliance)
 

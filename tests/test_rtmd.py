@@ -48,10 +48,11 @@ def test_transfer_src_defaults_to_the_packaged_constant():
     from ccesim.generator import transfer_metadata
     from ccesim.schemas import TRANSFER_SRC
     # One source of truth: the model default and the generator must agree, and
-    # with no override the wire value is unchanged from before this knob.
-    assert TRANSFER_SRC == 'org.nhgh'
+    # the literal is pinned here so a change to the packaged source is a
+    # deliberate edit rather than a silent drift in what deliveries claim to be.
+    assert TRANSFER_SRC == 'org.phoenixgh'
     assert transfer_metadata()['transferSrc'] == TRANSFER_SRC
-    assert transfer_metadata(type='ems')['transferSrc'] == 'org.nhgh'
+    assert transfer_metadata(type='ems')['transferSrc'] == 'org.phoenixgh'
     assert TransferMetadata(transferId='x').transferSrc == TRANSFER_SRC
 
 
@@ -111,7 +112,7 @@ def test_rtmd_transfer(rtmd_transfer):
     assert len(rtmd_transfer['meta']) == 5
     assert isinstance(rtmd_transfer['meta']['transferId'], str)
     assert isinstance(rtmd_transfer['meta']['transferSrc'], str)
-    assert rtmd_transfer['meta']['transferSrc'] == 'org.nhgh'
+    assert rtmd_transfer['meta']['transferSrc'] == 'org.phoenixgh'
     assert isinstance(rtmd_transfer['meta']['transferredAt'], datetime)
     assert rtmd_transfer['meta']['transferType'] == 'rtm'
     assert rtmd_transfer['meta']['schemaVersion'] == '0.8.1'
