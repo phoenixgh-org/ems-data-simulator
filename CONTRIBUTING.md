@@ -39,7 +39,7 @@ reproduced.
 
 ## Development setup
 
-Python 3.12 or newer; Node 22 is what CI runs.
+Python 3.12; Node 22 is what CI runs.
 
 ```bash
 git clone https://github.com/phoenixgh-org/ems-data-simulator.git
