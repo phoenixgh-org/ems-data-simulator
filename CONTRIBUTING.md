@@ -16,11 +16,10 @@ That is where bugs, questions and feature requests belong. You do not need to
 install anything to file one.
 
 Internally the maintainers track work with [beads](https://github.com/steveyegge/beads)
-(`bd`), and the issue database `.beads/issues.jsonl` is committed to this repo —
-so you can read the real backlog, including design notes and dependencies,
-without any special tooling. But **do not file there**: maintainers triage from
-GitHub into beads, and an issue that only exists in a clone of `.beads/` will not
-be seen.
+(`bd`), but that tracker is local to the maintainers and is **not** part of this
+repo — `.beads/` is untracked and gitignored. The internal backlog is therefore
+not readable from a clone, and nothing you file there would be seen. GitHub
+Issues is the only route in; maintainers triage from there into beads.
 
 ### What makes a good report
 
@@ -133,9 +132,13 @@ Data object identifiers (`TVC`, `TAMB`, `ALRM`, …) and catalog record fields
 
 ### 4. No issue IDs in source or documentation
 
-Internal beads IDs (`ccesim-xxx`) were deliberately removed from all tracked
-files: they are unresolvable for anyone outside the maintainers' tracker. Do not
-add them to code, comments, README files or docstrings.
+Internal beads IDs (`ccesim-xxx`) are unresolvable for anyone outside the
+maintainers' tracker — more so now that `.beads/` is not in the repo at all. Do
+not add them to code, comments, README files or docstrings; write what the
+reader needs to know instead.
+
+A handful of pre-existing occurrences still violate this and are being cleaned
+up separately. Their presence is not a precedent.
 
 **Commit messages are the exception** — they carry the ID, which is how work is
 traced back to the tracker.
