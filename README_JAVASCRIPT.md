@@ -440,6 +440,6 @@ Cross-validation compares **records** — the per-interval measurements a
 fixture can disagree about them and none does.
 
 This is a real gap, recorded here rather than left silent — it is how the
-coordinate-jitter divergence above survived unnoticed. Closing it is tracked as
-beads issue `ccesim-bcp`. Until then, envelope parity between the two
+coordinate-jitter divergence above survived unnoticed. Closing it is on the
+maintainers' backlog. Until then, envelope parity between the two
 implementations is held by each port's own unit tests, not by cross-validation.

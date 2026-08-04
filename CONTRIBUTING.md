@@ -130,18 +130,22 @@ surface.
 Data object identifiers (`TVC`, `TAMB`, `ALRM`, …) and catalog record fields
 (`APQS`, `AMFR`, `AMOD`) come from the specification and are never renamed.
 
-### 4. No issue IDs in source or documentation
+### 4. No issue IDs in the user-facing documentation
 
 Internal beads IDs (`ccesim-xxx`) are unresolvable for anyone outside the
-maintainers' tracker — more so now that `.beads/` is not in the repo at all. Do
-not add them to code, comments, README files or docstrings; write what the
-reader needs to know instead.
+maintainers' tracker — more so now that `.beads/` is not in the repo at all.
+Keep them out of `README.md`, `README_PYTHON.md` and `README_JAVASCRIPT.md`:
+those pages must say what the reader needs to know without pointing at a tracker
+nobody outside the maintainers can open.
 
-A handful of pre-existing occurrences still violate this and are being cleaned
-up separately. Their presence is not a precedent.
+**You will still see these IDs elsewhere, and you can safely ignore them.** Code
+comments, docstrings and historical decision records (`fhir/decisions/`) cite an
+ID as a back-reference to the discussion that produced a change. Nothing you
+need is behind that reference — write the comment or record so it stands on its
+own, then cite the ID if it helps whoever has tracker access.
 
-**Commit messages are the exception** — they carry the ID, which is how work is
-traced back to the tracker.
+Commit messages carry the ID for the same reason: it is how work is traced back
+to the tracker, and the message itself still has to make sense without it.
 
 ### 5. Internal-only material goes in `docs/internal/`
 
