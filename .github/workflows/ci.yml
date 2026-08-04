@@ -90,7 +90,7 @@ jobs:
         run: pipenv sync --dev
 
       # Transforms a generated EMS transmission to a FHIR R4 Bundle, validates
-      # every resource with fhir.resources, and asserts the four acceptance
+      # every resource with fhir.resources, and asserts the eight acceptance
       # properties. Exits non-zero if any check fails.
       - name: Run Phase 2 proof of concept
         run: pipenv run python fhir/transform/run_phase2_poc.py

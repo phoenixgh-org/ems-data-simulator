@@ -121,6 +121,27 @@ def assert_acceptance(bundle: dict) -> list[str]:
               for c in o.get("valueCodeableConcept", {}).get("coding", []))]
     checks.append((f"{len(alarms)} coded alarm Observations emitted (fault injected)", len(alarms) > 0))
 
+    # PINNED COUNTS -- the determinism gate from ccesim-58y. Every check above
+    # asserts a property; these four assert the exact numbers a SEED-pinned run
+    # produces, so that a future unseeded draw (a new random source in
+    # ccesim/device.py, a default that stops honouring sim_config.random_seed)
+    # fails CI instead of passing quietly against different data.
+    #
+    # ON FAILURE: treat SEED as fixed -- re-rolling it is the one move that makes a
+    # real regression disappear, which is precisely what these checks exist to catch.
+    # Ask instead whether the change was intended: a deliberate transform or
+    # thermal-model change means re-pin these four numbers in the same commit; an
+    # unexplained shift means an unpinned draw has crept back in. Fix the draw.
+    #
+    # len(devs) == 3 is structural, not seeded -- one appliance + EMD + logger on
+    # every run -- so it documents expected shape rather than guarding determinism.
+    # The other three carry the guard; all three were confirmed to fail on a
+    # perturbed seed.
+    checks.append((f"{len(devs)} Devices (pinned count)", len(devs) == 3))
+    checks.append((f"{len(obs)} Observations (pinned count)", len(obs) == 8903))
+    checks.append((f"{len(q)} quantity Observations (pinned count)", len(q) == 8640))
+    checks.append((f"{len(alarms)} coded alarm Observations (pinned count)", len(alarms) == 260))
+
     return checks
 
 
